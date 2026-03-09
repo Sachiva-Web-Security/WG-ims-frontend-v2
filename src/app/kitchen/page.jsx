@@ -57,6 +57,7 @@ export default function KitchenDashboard() {
       await api.put(`/kitchen/supply-history/${id}/acknowledge`);
       toast('Delivery acknowledged!', 'success');
       loadHistory(); // Reload to remove the notification
+      loadInventory(); // Reload to update the percentage bars and counts
     } catch { toast('Failed to acknowledge delivery', 'error'); }
   };
 

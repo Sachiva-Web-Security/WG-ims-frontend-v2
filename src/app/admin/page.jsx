@@ -166,15 +166,29 @@ export default function AdminDashboard() {
                 title={currentLocName ? `${currentLocName} — Inventory` : 'Location Inventory'}
                 sub="View stock levels · Max/Min quantities managed by Super Admin"
                 action={
-                  <div className="flex gap-2">
-                    <select className="input w-auto text-sm" value={selectedLoc || ''}
-                      onChange={e => setSelectedLoc(e.target.value)}>
-                      {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-                    </select>
-                    <button onClick={() => loadInventory(selectedLoc)} className="btn-secondary">🔄</button>
+                  <div className="flex gap-2 relative">
+                    <button onClick={() => loadInventory(selectedLoc)} className="btn-secondary whitespace-nowrap">🔄 Refresh</button>
                   </div>
                 }
               />
+
+              {/* Location tabs */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar">
+                <span className="text-sm font-medium text-slate-500 mr-2 whitespace-nowrap">Select Location:</span>
+                {locations.map(l => (
+                  <button
+                    key={l.id}
+                    onClick={() => setSelectedLoc(l.id)}
+                    className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2 border ${String(selectedLoc) === String(l.id)
+                      ? 'bg-slate-800 text-white border-slate-800 shadow-md transform scale-[1.02]'
+                      : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                      }`}
+                  >
+                    <span>📍</span>
+                    {l.name}
+                  </button>
+                ))}
+              </div>
 
               {/* Read-only notice */}
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-center gap-2 text-sm text-blue-700">

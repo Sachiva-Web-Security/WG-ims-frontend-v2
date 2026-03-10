@@ -9,10 +9,16 @@ export function StatusBadge({ status }) {
   );
 }
 
+import { ShieldCheck, ChefHat, Store } from 'lucide-react';
+
 // ─── Role Badge ───────────────────────────────────────────────────────────────
 export function RoleBadge({ role }) {
   const map = { SUPER_ADMIN: 'badge-super', ADMIN: 'badge-admin', KITCHEN_USER: 'badge-kitchen' };
-  const labels = { SUPER_ADMIN: '🛡 Super Admin', ADMIN: '👨‍🍳 Admin', KITCHEN_USER: '📦 Kitchen' };
+  const labels = {
+    SUPER_ADMIN: <><ShieldCheck size={14} className="inline mr-1" /> Super Admin</>,
+    ADMIN: <><ChefHat size={14} className="inline mr-1" /> Admin</>,
+    KITCHEN_USER: <><Store size={14} className="inline mr-1" /> Kitchen</>
+  };
   return <span className={map[role] || 'badge bg-slate-100 text-slate-500'}>{labels[role] || role}</span>;
 }
 
@@ -36,7 +42,7 @@ export function StatCard({ label, value, icon, gradient, sub }) {
     <div className={`stat-card ${gradient}`}>
       <div className="absolute top-0 right-0 w-24 h-24 rounded-full bg-white/10 -translate-y-8 translate-x-8" />
       <div className="relative">
-        <div className="text-2xl mb-2">{icon}</div>
+        <div className="text-2xl mb-2 text-white/90">{icon}</div>
         <p className="text-3xl font-bold font-heading">{value}</p>
         <p className="text-sm opacity-80 mt-0.5">{label}</p>
         {sub && <p className="text-xs opacity-60 mt-1">{sub}</p>}
@@ -84,11 +90,13 @@ export function Spinner({ size = 'md' }) {
   );
 }
 
+import { Inbox } from 'lucide-react';
+
 // ─── Empty State ──────────────────────────────────────────────────────────────
-export function Empty({ icon = '📭', message = 'No data found', sub }) {
+export function Empty({ icon = <Inbox size={48} className="mx-auto text-slate-300" />, message = 'No data found', sub }) {
   return (
     <div className="text-center py-16 px-4">
-      <div className="text-5xl mb-3">{icon}</div>
+      <div className="mb-4">{icon}</div>
       <p className="font-semibold text-slate-600">{message}</p>
       {sub && <p className="text-sm text-slate-400 mt-1">{sub}</p>}
     </div>

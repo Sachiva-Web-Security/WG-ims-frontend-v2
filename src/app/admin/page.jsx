@@ -5,13 +5,14 @@ import { StatusBadge, StockBar, StatCard, Spinner, Empty, Modal, SearchInput, Se
 import { useToast } from '@/context/ToastContext';
 import { UnitSelect } from '@/utils/units';
 import api from '@/lib/axios';
+import { LayoutDashboard, Store, Salad, Truck, ScrollText, AlertTriangle, AlertOctagon, Info, Package, Check, X } from 'lucide-react';
 
 const NAV = [
-  { key: 'overview', icon: '📊', label: 'Overview' },
-  { key: 'location', icon: '🏪', label: 'Location Detail' },
-  { key: 'ingredients', icon: '🥗', label: 'Ingredients' },
-  { key: 'dispatch', icon: '🚚', label: 'Dispatch Supply' },
-  { key: 'history', icon: '📜', label: 'Supply History' },
+  { key: 'overview', icon: <LayoutDashboard size={20} />, label: 'Overview' },
+  { key: 'location', icon: <Store size={20} />, label: 'Location Detail' },
+  { key: 'ingredients', icon: <Salad size={20} />, label: 'Ingredients' },
+  { key: 'dispatch', icon: <Truck size={20} />, label: 'Dispatch Supply' },
+  { key: 'history', icon: <ScrollText size={20} />, label: 'Supply History' },
 ];
 
 export default function AdminDashboard() {
@@ -111,10 +112,11 @@ export default function AdminDashboard() {
             <div className="space-y-6 fade-up">
               <SectionHeader title="Kitchen Overview" sub="All locations at a glance"
                 action={<button onClick={loadDashboard} className="btn-secondary">🔄 Refresh</button>} />
+
               <div className="grid grid-cols-3 gap-4">
-                <StatCard icon="🏪" label="Locations" value={dashboard.length} gradient="bg-gradient-to-br from-slate-700 to-slate-900" />
-                <StatCard icon="⚠️" label="Low Stock" value={totalLow} gradient="bg-gradient-to-br from-amber-500 to-amber-700" />
-                <StatCard icon="🔴" label="Critical" value={totalCritical} gradient="bg-gradient-to-br from-red-500 to-red-700" />
+                <StatCard icon={<Store size={32} />} label="Locations" value={dashboard.length} gradient="bg-gradient-to-br from-slate-700 to-slate-900" />
+                <StatCard icon={<AlertTriangle size={32} />} label="Low Stock" value={totalLow} gradient="bg-gradient-to-br from-amber-500 to-amber-700" />
+                <StatCard icon={<AlertOctagon size={32} />} label="Critical" value={totalCritical} gradient="bg-gradient-to-br from-red-500 to-red-700" />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {dashboard.map(loc => {
@@ -142,9 +144,9 @@ export default function AdminDashboard() {
                           {critical > 0 && <div className="bg-red-500 rounded-full pulse-glow" style={{ flex: critical }} />}
                         </div>
                         <div className="flex gap-3 text-xs">
-                          <span className="text-emerald-600">✓ {ok} OK</span>
-                          <span className="text-amber-600">⚠ {low} Low</span>
-                          <span className="text-red-600">✗ {critical} Critical</span>
+                          <span className="text-emerald-600 flex items-center gap-1"><Check size={12} /> {ok} OK</span>
+                          <span className="text-amber-600 flex items-center gap-1"><AlertTriangle size={12} /> {low} Low</span>
+                          <span className="text-red-600 flex items-center gap-1"><X size={12} /> {critical} Critical</span>
                         </div>
                       </div>
                       {loc.last_updated && (
@@ -184,7 +186,7 @@ export default function AdminDashboard() {
                       : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                       }`}
                   >
-                    <span>📍</span>
+                    <Store size={16} />
                     {l.name}
                   </button>
                 ))}
@@ -192,7 +194,7 @@ export default function AdminDashboard() {
 
               {/* Read-only notice */}
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-center gap-2 text-sm text-blue-700">
-                <span>ℹ️</span>
+                <Info size={16} />
                 <span>Max & Min quantities are set by <strong>Super Admin</strong> in Stock Limits. Dispatch supplies below to refill locations.</span>
               </div>
 
@@ -224,7 +226,7 @@ export default function AdminDashboard() {
                           </tr>
                         ))}
                         {!filteredInv.length && (
-                          <tr><td colSpan="9"><Empty icon="📦" message="No inventory items" /></td></tr>
+                          <tr><td colSpan="9"><Empty icon={<Package size={48} className="mx-auto text-slate-300" />} message="No inventory items" /></td></tr>
                         )}
                       </tbody>
                     </table>

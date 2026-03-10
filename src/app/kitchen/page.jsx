@@ -5,11 +5,12 @@ import { StatusBadge, StockBar, StatCard, Spinner, Empty, SectionHeader } from '
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import api from '@/lib/axios';
+import { Package, PenLine, ScrollText, CheckCircle2, AlertTriangle, AlertOctagon, Truck, ShieldAlert } from 'lucide-react';
 
 const NAV = [
-  { key: 'inventory', icon: '📦', label: 'My Inventory' },
-  { key: 'update', icon: '✏️', label: 'Update Stock' },
-  { key: 'history', icon: '📜', label: 'Supply History' },
+  { key: 'inventory', icon: <Package size={20} />, label: 'My Inventory' },
+  { key: 'update', icon: <PenLine size={20} />, label: 'Update Stock' },
+  { key: 'history', icon: <ScrollText size={20} />, label: 'Supply History' },
 ];
 
 export default function KitchenDashboard() {
@@ -116,7 +117,7 @@ export default function KitchenDashboard() {
               {unreadSupplies.length > 0 && (
                 <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-6 shadow-sm">
                   <div className="flex items-center gap-3 mb-3">
-                    <span className="text-2xl">🚚</span>
+                    <Truck size={28} className="text-blue-600" />
                     <h3 className="font-bold text-blue-900 text-lg">New Supplies Dispatched</h3>
                   </div>
                   <div className="space-y-2">
@@ -139,15 +140,15 @@ export default function KitchenDashboard() {
 
               {/* Stats */}
               <div className="grid grid-cols-3 gap-4">
-                <StatCard icon="🟢" label="OK Items" value={ok} gradient="bg-gradient-to-br from-emerald-500 to-emerald-700" />
-                <StatCard icon="🟡" label="Low Stock" value={low} gradient="bg-gradient-to-br from-amber-500 to-amber-700" />
-                <StatCard icon="🔴" label="Critical" value={critical} gradient="bg-gradient-to-br from-red-500 to-red-700" />
+                <StatCard icon={<CheckCircle2 size={32} />} label="OK Items" value={ok} gradient="bg-gradient-to-br from-emerald-500 to-emerald-700" />
+                <StatCard icon={<AlertTriangle size={32} />} label="Low Stock" value={low} gradient="bg-gradient-to-br from-amber-500 to-amber-700" />
+                <StatCard icon={<AlertOctagon size={32} />} label="Critical" value={critical} gradient="bg-gradient-to-br from-red-500 to-red-700" />
               </div>
 
               {/* Alerts */}
               {critical > 0 && (
                 <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-center gap-3">
-                  <span className="text-2xl">🚨</span>
+                  <ShieldAlert size={32} className="text-red-500" />
                   <div>
                     <p className="font-semibold text-red-800">
                       {critical} item{critical > 1 ? 's' : ''} need immediate restocking
@@ -186,7 +187,7 @@ export default function KitchenDashboard() {
                         </tr>
                       ))}
                       {!inventory.length && (
-                        <tr><td colSpan="8"><Empty icon="📦" message="No inventory assigned" sub="Contact your admin to set up your location's inventory." /></td></tr>
+                        <tr><td colSpan="8"><Empty icon={<Package size={48} className="mx-auto text-slate-300" />} message="No inventory assigned" sub="Contact your admin to set up your location's inventory." /></td></tr>
                       )}
                     </tbody>
                   </table>
@@ -304,7 +305,7 @@ export default function KitchenDashboard() {
                             <td className="text-slate-400">{h.notes || '—'}</td>
                           </tr>
                         ))}
-                        {!history.length && <tr><td colSpan="4"><Empty icon="📜" message="No deliveries yet" sub="Supply history will appear here once the Central Kitchen dispatches to your location." /></td></tr>}
+                        {!history.length && <tr><td colSpan="4"><Empty icon={<ScrollText size={48} className="mx-auto text-slate-300" />} message="No deliveries yet" sub="Supply history will appear here once the Central Kitchen dispatches to your location." /></td></tr>}
                       </tbody>
                     </table>
                   </div>

@@ -12,15 +12,16 @@ import {
 import { useToast } from '@/context/ToastContext';
 import { UnitSelect } from '@/utils/units';
 import api from '@/lib/axios';
+import { LayoutDashboard, LineChart, Salad, Settings, Users, Store, ScrollText, AlertTriangle, CheckCircle2, Key, User, Info, AlertOctagon } from 'lucide-react';
 
 const NAV = [
-  { key: 'dashboard', icon: '📊', label: 'Dashboard' },
-  { key: 'charts', icon: '📈', label: 'Stock Charts' },
-  { key: 'ingredients', icon: '🥗', label: 'Ingredients' },
-  { key: 'stock-config', icon: '⚙️', label: 'Stock Limits' },
-  { key: 'users', icon: '👥', label: 'Users' },
-  { key: 'locations', icon: '📍', label: 'Locations' },
-  { key: 'audit', icon: '📋', label: 'Audit Log' },
+  { key: 'dashboard', icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
+  { key: 'charts', icon: <LineChart size={20} />, label: 'Stock Charts' },
+  { key: 'ingredients', icon: <Salad size={20} />, label: 'Ingredients' },
+  { key: 'stock-config', icon: <Settings size={20} />, label: 'Stock Limits' },
+  { key: 'users', icon: <Users size={20} />, label: 'Users' },
+  { key: 'locations', icon: <Store size={20} />, label: 'Locations' },
+  { key: 'audit', icon: <ScrollText size={20} />, label: 'Audit Log' },
 ];
 
 // ─── Custom Tooltip for charts ─────────────────────────────────────────────
@@ -277,6 +278,14 @@ export default function SuperAdminDashboard() {
     } catch { toast('Failed', 'error'); }
   };
 
+  const updateIngredientUnit = async (id, newUnit) => {
+    try {
+      await api.put(`/super-admin/ingredients/${id}`, { unit: newUnit });
+      toast('Unit updated globally!', 'success');
+      load(page);
+    } catch { toast('Failed to update unit', 'error'); }
+  };
+
   // ── Stock Config actions ──────────────────────────────────────────────────
   const saveStockLimit = async (ingId) => {
     setSavingConfig(s => ({ ...s, [ingId]: true }));
@@ -335,10 +344,10 @@ export default function SuperAdminDashboard() {
             <div className="space-y-6 fade-up">
               <SectionHeader title="System Overview" sub="WavaGrill IMS · Super Admin Control Center" />
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="fade-up-1"><StatCard icon="👥" label="Active Users" value={stats.total_users} gradient="bg-gradient-to-br from-slate-700 to-slate-900" /></div>
-                <div className="fade-up-2"><StatCard icon="📍" label="Locations" value={stats.total_locations} gradient="bg-gradient-to-br from-blue-600 to-blue-800" /></div>
-                <div className="fade-up-3"><StatCard icon="🥗" label="Ingredients" value={stats.total_ingredients} gradient="bg-gradient-to-br from-amber-500 to-amber-700" /></div>
-                <div className="fade-up-4"><StatCard icon="🔴" label="Critical Items" value={stats.critical_count} gradient="bg-gradient-to-br from-red-500 to-red-700" /></div>
+                <div className="fade-up-1"><StatCard icon={<Users size={32} />} label="Active Users" value={stats.total_users} gradient="bg-slate-800" /></div>
+                <div className="fade-up-2"><StatCard icon={<Store size={32} />} label="Locations" value={stats.total_locations} gradient="bg-blue-600" /></div>
+                <div className="fade-up-3"><StatCard icon={<Salad size={32} />} label="Ingredients" value={stats.total_ingredients} gradient="bg-amber-600" /></div>
+                <div className="fade-up-4"><StatCard icon={<AlertOctagon size={32} />} label="Critical Items" value={stats.critical_count} gradient="bg-[#e4001b]" /></div>
               </div>
 
               {/* Location status grid */}
@@ -348,7 +357,7 @@ export default function SuperAdminDashboard() {
                   {locations.map(loc => (
                     <div key={loc.id} className="card-sm flex items-center gap-3 cursor-pointer hover:shadow-md transition-all"
                       onClick={() => setPage('charts')}>
-                      <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center text-base">📍</div>
+                      <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center text-amber-600"><Store size={18} /></div>
                       <div>
                         <p className="font-semibold text-sm text-slate-800">{loc.name}</p>
                         <p className="text-xs text-slate-400 font-mono">{loc.location_code}</p>
@@ -360,17 +369,22 @@ export default function SuperAdminDashboard() {
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {[
-                  ['📈 Stock Charts', 'charts'],
-                  ['⚙️ Stock Limits', 'stock-config'],
-                  ['🥗 Ingredients', 'ingredients'],
-                  ['👥 Users', 'users'],
-                  ['📍 Locations', 'locations'],
-                  ['📋 Audit Log', 'audit'],
-                ].map(([label, key]) => (
+                  { label: 'Stock Charts', key: 'charts', icon: <LineChart size={18} className="text-blue-500" /> },
+                  { label: 'Stock Limits', key: 'stock-config', icon: <Settings size={18} className="text-amber-500" /> },
+                  { label: 'Ingredients', key: 'ingredients', icon: <Salad size={18} className="text-emerald-500" /> },
+                  { label: 'Users', key: 'users', icon: <Users size={18} className="text-indigo-500" /> },
+                  { label: 'Locations', key: 'locations', icon: <Store size={18} className="text-rose-500" /> },
+                  { label: 'Audit Log', key: 'audit', icon: <ScrollText size={18} className="text-slate-500" /> },
+                ].map(({ label, key, icon }) => (
                   <button key={key} onClick={() => setPage(key)}
-                    className="card hover:shadow-elevated transition-all cursor-pointer text-left group p-4">
-                    <p className="font-semibold text-slate-800 group-hover:text-amber-600 transition-colors text-sm">{label}</p>
-                    <p className="text-xs text-slate-400 mt-0.5">View and manage →</p>
+                    className="card hover:shadow-elevated transition-all cursor-pointer text-left group p-4 flex flex-col items-start gap-2">
+                    <div className="p-2 bg-slate-50 rounded-lg group-hover:scale-110 transition-transform">
+                      {icon}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-800 group-hover:text-amber-600 transition-colors text-sm">{label}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">View and manage →</p>
+                    </div>
                   </button>
                 ))}
               </div>
@@ -472,9 +486,11 @@ export default function SuperAdminDashboard() {
                           <td className="text-slate-400 font-mono text-xs">{String(ing.id).padStart(3, '0')}</td>
                           <td className="font-medium text-slate-800">{ing.name}</td>
                           <td>
-                            <span className="bg-slate-100 text-slate-600 text-xs px-2.5 py-1 rounded-full font-mono font-medium">
-                              {ing.unit}
-                            </span>
+                            <UnitSelect
+                              value={ing.unit}
+                              onChange={(v) => updateIngredientUnit(ing.id, v)}
+                              className="bg-slate-100 text-slate-600 text-xs px-2.5 py-1 rounded-full font-mono font-medium border-0 cursor-pointer hover:bg-slate-200 outline-none transition-colors"
+                            />
                           </td>
                           <td className="text-slate-400 text-xs">
                             {['tsp', 'tbsp', 'fl oz', 'cup', 'pt', 'qt', 'gal'].includes(ing.unit) ? 'US Volume' :
@@ -493,7 +509,7 @@ export default function SuperAdminDashboard() {
                       ))}
                       {!filteredIng.length && (
                         <tr><td colSpan="6">
-                          <Empty icon="🥗" message="No ingredients found" sub='Click "+ Add Ingredient" to get started.' />
+                          <Empty icon={<Salad size={48} className="mx-auto text-slate-300" />} message="No ingredients found" sub='Click "+ Add Ingredient" to get started.' />
                         </td></tr>
                       )}
                     </tbody>
@@ -527,7 +543,7 @@ export default function SuperAdminDashboard() {
                         ? 'bg-slate-800 text-white border-slate-800 shadow-sm'
                         : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
                         }`}>
-                      📍 {loc.name}
+                      <Store size={16} /> {loc.name}
                     </button>
                   ))}
                 </div>
@@ -535,7 +551,7 @@ export default function SuperAdminDashboard() {
 
               {/* Info banner */}
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2 text-sm text-amber-800">
-                <span className="text-lg">⚙️</span>
+                <Settings size={20} className="mt-0.5" />
                 <div>
                   <span className="font-semibold">Super Admin only:</span> Max quantity = target stock level. Min quantity = alert threshold (if 0, system uses 40% of max).
                 </div>
@@ -550,8 +566,8 @@ export default function SuperAdminDashboard() {
                         <th>Ingredient</th>
                         <th>Unit</th>
                         <th>Current Stock</th>
-                        <th className="text-amber-300">Min Quantity ⚠️</th>
-                        <th className="text-emerald-300">Max Quantity ✓</th>
+                        <th className="text-amber-500 flex items-center gap-1.5 min-w-[140px]">Min Quantity <AlertTriangle size={14} /></th>
+                        <th className="text-emerald-500 flex items-center gap-1.5 min-w-[140px]">Max Quantity <CheckCircle2 size={14} /></th>
                         <th>Level</th>
                         <th></th>
                       </tr></thead>
@@ -562,11 +578,11 @@ export default function SuperAdminDashboard() {
                           return (
                             <tr key={item.ingredient_id}>
                               <td className="font-medium text-slate-800">{item.ingredient_name}</td>
-                              <td>
-                                <span className="bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded-full font-mono">
-                                  {item.unit}
-                                </span>
-                              </td>
+                              <UnitSelect
+                                value={item.unit}
+                                onChange={(v) => updateIngredientUnit(item.ingredient_id, v)}
+                                className="bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded-full font-mono border-0 cursor-pointer hover:bg-slate-200 outline-none transition-colors"
+                              />
                               <td className="font-semibold">{item.current_quantity}</td>
                               <td>
                                 <input
@@ -655,8 +671,8 @@ export default function SuperAdminDashboard() {
                           </td>
                           <td>
                             <button onClick={() => { setResetPwModal({ id: u.id, name: u.name }); setResetPwValue(''); }}
-                              className="text-xs text-amber-600 hover:text-amber-800 font-medium transition-colors">
-                              🔑 Reset Pwd
+                              className="text-xs text-amber-600 hover:text-amber-800 font-medium transition-colors flex items-center gap-1">
+                              <Key size={12} /> Reset Pwd
                             </button>
                           </td>
                           <td>
@@ -670,7 +686,7 @@ export default function SuperAdminDashboard() {
                         </tr>
                       ))}
                       {!filteredUsers.length && (
-                        <tr><td colSpan="7"><Empty icon="👤" message="No users found" /></td></tr>
+                        <tr><td colSpan="7"><Empty icon={<User size={48} className="mx-auto text-slate-300" />} message="No users found" /></td></tr>
                       )}
                     </tbody>
                   </table>
@@ -690,8 +706,8 @@ export default function SuperAdminDashboard() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {locations.map(loc => (
                   <div key={loc.id} className="card flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-xl flex-shrink-0 shadow-amber-glow">
-                      📍
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center flex-shrink-0 shadow-amber-glow text-amber-50">
+                      <Store size={24} />
                     </div>
                     <div className="flex-1">
                       <p className="font-bold text-slate-800">{loc.name}</p>
@@ -702,7 +718,7 @@ export default function SuperAdminDashboard() {
                     </span>
                   </div>
                 ))}
-                {!locations.length && <Empty icon="📍" message="No locations configured" />}
+                {!locations.length && <Empty icon={<Store size={48} className="mx-auto text-slate-300" />} message="No locations configured" />}
               </div>
             </div>
           )}
@@ -736,7 +752,7 @@ export default function SuperAdminDashboard() {
                         </tr>
                       ))}
                       {!auditLog.length && (
-                        <tr><td colSpan="5"><Empty icon="📋" message="No audit records yet" /></td></tr>
+                        <tr><td colSpan="5"><Empty icon={<ScrollText size={48} className="mx-auto text-slate-300" />} message="No audit records yet" /></td></tr>
                       )}
                     </tbody>
                   </table>
@@ -821,8 +837,9 @@ export default function SuperAdminDashboard() {
           <Field label="Unit of Measurement">
             <UnitSelect value={ingForm.unit} onChange={v => setIngForm(f => ({ ...f, unit: v }))} />
           </Field>
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-700">
-            ℹ️ This ingredient will be added to all active locations. Set max/min quantities in <strong>Stock Limits</strong>.
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-700 flex items-start gap-2">
+            <Info size={16} className="mt-0.5 flex-shrink-0" />
+            <span>This ingredient will be added to all active locations. Set max/min quantities in <strong>Stock Limits</strong>.</span>
           </div>
           <div className="flex gap-3 justify-end">
             <button type="button" onClick={() => setIngModal(false)} className="btn-secondary">Cancel</button>

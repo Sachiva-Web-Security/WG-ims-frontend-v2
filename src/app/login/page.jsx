@@ -6,7 +6,7 @@ import { useToast } from '@/context/ToastContext';
 
 const DEMO = [
     { label: '🛡 Super Admin', email: 'superadmin@wavagrill.com', color: 'border-violet-300 bg-violet-50 hover:bg-violet-100 text-violet-700' },
-    { label: '👨‍🍳 Admin (CK)', email: 'admin@wavagrill.com', color: 'border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-700' },
+    { label: '👨‍🍳 Central Kitchen', email: 'admin@wavagrill.com', color: 'border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-700' },
     { label: '📦 Denton', email: 'denton@wavagrill.com', color: 'border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-700' },
     { label: '📦 Greenville', email: 'greenville@wavagrill.com', color: 'border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-700' },
 ];

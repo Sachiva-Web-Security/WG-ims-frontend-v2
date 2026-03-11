@@ -344,46 +344,48 @@ export default function SuperAdminDashboard() {
             <div className="space-y-6 fade-up">
               <SectionHeader title="System Overview" sub="WavaGrill IMS · Super Admin Control Center" />
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="fade-up-1"><StatCard icon={<Users size={32} />} label="Active Users" value={stats.total_users} gradient="bg-slate-800" /></div>
-                <div className="fade-up-2"><StatCard icon={<Store size={32} />} label="Locations" value={stats.total_locations} gradient="bg-blue-600" /></div>
-                <div className="fade-up-3"><StatCard icon={<Salad size={32} />} label="Ingredients" value={stats.total_ingredients} gradient="bg-amber-600" /></div>
-                <div className="fade-up-4"><StatCard icon={<AlertOctagon size={32} />} label="Critical Items" value={stats.critical_count} gradient="bg-[#e4001b]" /></div>
+                <div className="fade-up-1"><StatCard icon={<Users size={20} strokeWidth={1.5} />} label="Active Users" value={stats.total_users} gradient="bg-[#2B3544]" overlayClass="bg-white/5" /></div>
+                <div className="fade-up-2"><StatCard icon={<Store size={20} strokeWidth={1.5} />} label="Locations" value={stats.total_locations} gradient="bg-[#2563EB]" overlayClass="bg-white/10" /></div>
+                <div className="fade-up-3"><StatCard icon={<Salad size={20} strokeWidth={1.5} />} label="Ingredients" value={stats.total_ingredients} gradient="bg-[#E68200]" overlayClass="bg-white/10" /></div>
+                <div className="fade-up-4"><StatCard icon={<AlertOctagon size={20} strokeWidth={1.5} />} label="Critical Items" value={stats.critical_count} gradient="bg-[#E40026]" overlayClass="bg-white/10" /></div>
               </div>
 
               {/* Location status grid */}
               <div>
-                <h3 className="font-semibold text-slate-600 text-sm uppercase tracking-wide mb-3">Location Status</h3>
+                <h3 className="font-semibold text-slate-500 text-xs uppercase tracking-wider mb-3">Location Status</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   {locations.map(loc => (
-                    <div key={loc.id} className="card-sm flex items-center gap-3 cursor-pointer hover:shadow-md transition-all"
+                    <div key={loc.id} className="bg-white rounded-xl shadow-sm border border-slate-100 p-3 flex items-center gap-3 cursor-pointer hover:shadow-md hover:border-slate-300 transition-all group"
                       onClick={() => setPage('charts')}>
-                      <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center text-amber-600"><Store size={18} /></div>
+                      <div className="w-10 h-10 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600 group-hover:border-blue-200 transition-colors">
+                        <Store size={20} />
+                      </div>
                       <div>
-                        <p className="font-semibold text-sm text-slate-800">{loc.name}</p>
-                        <p className="text-xs text-slate-400 font-mono">{loc.location_code}</p>
+                        <p className="font-bold text-sm text-slate-800 group-hover:text-blue-700 transition-colors">{loc.name}</p>
+                        <p className="text-xs text-slate-400 font-mono mt-0.5">{loc.location_code}</p>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {[
-                  { label: 'Stock Charts', key: 'charts', icon: <LineChart size={18} className="text-blue-500" /> },
-                  { label: 'Stock Limits', key: 'stock-config', icon: <Settings size={18} className="text-amber-500" /> },
-                  { label: 'Ingredients', key: 'ingredients', icon: <Salad size={18} className="text-emerald-500" /> },
-                  { label: 'Users', key: 'users', icon: <Users size={18} className="text-indigo-500" /> },
-                  { label: 'Locations', key: 'locations', icon: <Store size={18} className="text-rose-500" /> },
-                  { label: 'Audit Log', key: 'audit', icon: <ScrollText size={18} className="text-slate-500" /> },
-                ].map(({ label, key, icon }) => (
+                  { label: 'Stock Charts', key: 'charts', icon: <LineChart size={24} className="text-blue-600" />, colorClass: 'border-blue-500 hover:bg-blue-50/30', iconBg: 'bg-blue-100', textHover: 'group-hover:text-blue-700' },
+                  { label: 'Stock Limits', key: 'stock-config', icon: <Settings size={24} className="text-amber-600" />, colorClass: 'border-amber-500 hover:bg-amber-50/30', iconBg: 'bg-amber-100', textHover: 'group-hover:text-amber-700' },
+                  { label: 'Ingredients', key: 'ingredients', icon: <Salad size={24} className="text-emerald-600" />, colorClass: 'border-emerald-500 hover:bg-emerald-50/30', iconBg: 'bg-emerald-100', textHover: 'group-hover:text-emerald-700' },
+                  { label: 'Users', key: 'users', icon: <Users size={24} className="text-indigo-600" />, colorClass: 'border-indigo-500 hover:bg-indigo-50/30', iconBg: 'bg-indigo-100', textHover: 'group-hover:text-indigo-700' },
+                  { label: 'Locations', key: 'locations', icon: <Store size={24} className="text-rose-600" />, colorClass: 'border-rose-500 hover:bg-rose-50/30', iconBg: 'bg-rose-100', textHover: 'group-hover:text-rose-700' },
+                  { label: 'Audit Log', key: 'audit', icon: <ScrollText size={24} className="text-slate-600" />, colorClass: 'border-slate-500 hover:bg-slate-50/30', iconBg: 'bg-slate-100', textHover: 'group-hover:text-slate-700' },
+                ].map(({ label, key, icon, colorClass, iconBg, textHover }) => (
                   <button key={key} onClick={() => setPage(key)}
-                    className="card hover:shadow-elevated transition-all cursor-pointer text-left group p-4 flex flex-col items-start gap-2">
-                    <div className="p-2 bg-slate-50 rounded-lg group-hover:scale-110 transition-transform">
+                    className={`bg-white rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-all cursor-pointer text-left group p-5 border-l-4 ${colorClass} flex items-center gap-4`}>
+                    <div className={`p-3 ${iconBg} rounded-xl group-hover:scale-110 transition-transform`}>
                       {icon}
                     </div>
                     <div>
-                      <p className="font-semibold text-slate-800 group-hover:text-amber-600 transition-colors text-sm">{label}</p>
-                      <p className="text-xs text-slate-400 mt-0.5">View and manage →</p>
+                      <p className={`font-bold text-slate-800 ${textHover} transition-colors`}>{label}</p>
+                      <p className="text-xs text-slate-500 mt-1">View and manage →</p>
                     </div>
                   </button>
                 ))}
@@ -566,8 +568,8 @@ export default function SuperAdminDashboard() {
                         <th>Ingredient</th>
                         <th>Unit</th>
                         <th>Current Stock</th>
-                        <th className="text-amber-500 flex items-center gap-1.5 min-w-[140px]">Min Quantity <AlertTriangle size={14} /></th>
-                        <th className="text-emerald-500 flex items-center gap-1.5 min-w-[140px]">Max Quantity <CheckCircle2 size={14} /></th>
+                        <th className="text-amber-500 min-w-[140px]"><div className="flex items-center gap-1.5">Min Quantity <AlertTriangle size={14} /></div></th>
+                        <th className="text-emerald-500 min-w-[140px]"><div className="flex items-center gap-1.5">Max Quantity <CheckCircle2 size={14} /></div></th>
                         <th>Level</th>
                         <th></th>
                       </tr></thead>

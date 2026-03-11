@@ -140,9 +140,9 @@ export default function KitchenDashboard() {
 
               {/* Stats */}
               <div className="grid grid-cols-3 gap-4">
-                <StatCard icon={<CheckCircle2 size={32} />} label="OK Items" value={ok} gradient="bg-gradient-to-br from-emerald-500 to-emerald-700" />
-                <StatCard icon={<AlertTriangle size={32} />} label="Low Stock" value={low} gradient="bg-gradient-to-br from-amber-500 to-amber-700" />
-                <StatCard icon={<AlertOctagon size={32} />} label="Critical" value={critical} gradient="bg-gradient-to-br from-red-500 to-red-700" />
+                <StatCard icon={<CheckCircle2 size={20} strokeWidth={1.5} />} label="OK Items" value={ok} gradient="bg-[#10B981]" overlayClass="bg-white/10" />
+                <StatCard icon={<AlertTriangle size={20} strokeWidth={1.5} />} label="Low Stock" value={low} gradient="bg-[#E68200]" overlayClass="bg-white/10" />
+                <StatCard icon={<AlertOctagon size={20} strokeWidth={1.5} />} label="Critical" value={critical} gradient="bg-[#E40026]" overlayClass="bg-white/10" />
               </div>
 
               {/* Alerts */}

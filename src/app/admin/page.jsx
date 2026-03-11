@@ -114,9 +114,9 @@ export default function AdminDashboard() {
                 action={<button onClick={loadDashboard} className="btn-secondary">🔄 Refresh</button>} />
 
               <div className="grid grid-cols-3 gap-4">
-                <StatCard icon={<Store size={32} />} label="Locations" value={dashboard.length} gradient="bg-gradient-to-br from-slate-700 to-slate-900" />
-                <StatCard icon={<AlertTriangle size={32} />} label="Low Stock" value={totalLow} gradient="bg-gradient-to-br from-amber-500 to-amber-700" />
-                <StatCard icon={<AlertOctagon size={32} />} label="Critical" value={totalCritical} gradient="bg-gradient-to-br from-red-500 to-red-700" />
+                <StatCard icon={<Store size={20} strokeWidth={1.5} />} label="Locations" value={dashboard.length} gradient="bg-[#2B3544]" overlayClass="bg-white/5" />
+                <StatCard icon={<AlertTriangle size={20} strokeWidth={1.5} />} label="Low Stock" value={totalLow} gradient="bg-[#E68200]" overlayClass="bg-white/10" />
+                <StatCard icon={<AlertOctagon size={20} strokeWidth={1.5} />} label="Critical" value={totalCritical} gradient="bg-[#E40026]" overlayClass="bg-white/10" />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {dashboard.map(loc => {
@@ -125,12 +125,17 @@ export default function AdminDashboard() {
                   const ok = Number(loc.ok_count || 0);
                   const status = critical > 0 ? 'CRITICAL' : low > 0 ? 'LOW' : 'OK';
                   return (
-                    <div key={loc.id} className="card cursor-pointer hover:shadow-elevated transition-all group"
+                    <div key={loc.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 cursor-pointer hover:shadow-md hover:border-blue-200 transition-all group"
                       onClick={() => { setSelectedLoc(loc.id); setPage('location'); }}>
                       <div className="flex items-start justify-between mb-4">
-                        <div>
-                          <h3 className="font-bold text-slate-800 font-heading group-hover:text-amber-600 transition-colors">{loc.name}</h3>
-                          <p className="text-xs text-slate-400 font-mono mt-0.5">{loc.location_code}</p>
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+                            <Store size={20} />
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-slate-800 font-heading group-hover:text-blue-700 transition-colors">{loc.name}</h3>
+                            <p className="text-xs text-slate-400 font-mono mt-0.5 group-hover:text-blue-600/60 transition-colors">{loc.location_code}</p>
+                          </div>
                         </div>
                         <StatusBadge status={status} />
                       </div>

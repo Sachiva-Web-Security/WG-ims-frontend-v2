@@ -37,15 +37,17 @@ export function StockBar({ current, max }) {
 }
 
 // ─── Stat Cards ───────────────────────────────────────────────────────────────
-export function StatCard({ label, value, icon, gradient, sub }) {
+export function StatCard({ label, value, icon, gradient, sub, overlayClass = "bg-white/10" }) {
   return (
-    <div className={`stat-card ${gradient}`}>
-      <div className="absolute top-0 right-0 w-24 h-24 rounded-full bg-white/10 -translate-y-8 translate-x-8" />
-      <div className="relative">
-        <div className="text-2xl mb-2 text-white/90">{icon}</div>
-        <p className="text-3xl font-bold font-heading">{value}</p>
-        <p className="text-sm opacity-80 mt-0.5">{label}</p>
-        {sub && <p className="text-xs opacity-60 mt-1">{sub}</p>}
+    <div className={`group relative overflow-hidden rounded-xl p-5 text-white ${gradient} shadow-sm border border-black/5 transition-all duration-300 hover:-translate-y-1 hover:shadow-md`}>
+      <div className={`absolute top-0 right-0 w-28 h-28 rounded-bl-full ${overlayClass} transition-transform duration-500 origin-top-right group-hover:scale-125`} />
+      <div className="relative z-10 flex flex-col min-h-[110px] justify-between">
+        <div>{icon}</div>
+        <div className="mt-4">
+          <p className="text-4xl font-bold tracking-tight">{value}</p>
+          <p className="text-sm text-white/70 mt-0.5">{label}</p>
+          {sub && <p className="text-xs text-white/50 mt-1">{sub}</p>}
+        </div>
       </div>
     </div>
   );

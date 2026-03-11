@@ -580,11 +580,13 @@ export default function SuperAdminDashboard() {
                           return (
                             <tr key={item.ingredient_id}>
                               <td className="font-medium text-slate-800">{item.ingredient_name}</td>
-                              <UnitSelect
-                                value={item.unit}
-                                onChange={(v) => updateIngredientUnit(item.ingredient_id, v)}
-                                className="bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded-full font-mono border-0 cursor-pointer hover:bg-slate-200 outline-none transition-colors"
-                              />
+                              <td>
+                                <UnitSelect
+                                  value={item.unit}
+                                  onChange={(v) => updateIngredientUnit(item.ingredient_id, v)}
+                                  className="bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded-full font-mono border-0 cursor-pointer hover:bg-slate-200 outline-none transition-colors"
+                                />
+                              </td>
                               <td className="font-semibold">{item.current_quantity}</td>
                               <td>
                                 <input

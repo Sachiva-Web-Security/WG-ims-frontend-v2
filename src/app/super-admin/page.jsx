@@ -343,11 +343,11 @@ export default function SuperAdminDashboard() {
           {page === 'dashboard' && stats && (
             <div className="space-y-6 fade-up">
               <SectionHeader title="System Overview" sub="WavaGrill IMS · Super Admin Control Center" />
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="fade-up-1"><StatCard icon={<Users size={20} strokeWidth={1.5} />} label="Active Users" value={stats.total_users} gradient="bg-[#2B3544]" overlayClass="bg-white/5" /></div>
-                <div className="fade-up-2"><StatCard icon={<Store size={20} strokeWidth={1.5} />} label="Locations" value={stats.total_locations} gradient="bg-[#2563EB]" overlayClass="bg-white/10" /></div>
-                <div className="fade-up-3"><StatCard icon={<Salad size={20} strokeWidth={1.5} />} label="Ingredients" value={stats.total_ingredients} gradient="bg-[#E68200]" overlayClass="bg-white/10" /></div>
-                <div className="fade-up-4"><StatCard icon={<AlertOctagon size={20} strokeWidth={1.5} />} label="Critical Items" value={stats.critical_count} gradient="bg-[#E40026]" overlayClass="bg-white/10" /></div>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4  ">
+                <div className="fade-up-1"><StatCard icon={<Users size={20} strokeWidth={1.5} />} label="Active Users" value={stats.total_users} gradient="bg-slate-500" overlayClass="bg-white/1"  /></div>
+                <div className="fade-up-2"><StatCard icon={<Store size={20} strokeWidth={1.5} />} label="Locations" value={stats.total_locations} gradient="bg-blue-400" overlayClass="bg-white/1" /></div>
+                <div className="fade-up-3"><StatCard icon={<Salad size={20} strokeWidth={1.5} />} label="Ingredients" value={stats.total_ingredients} gradient="bg-orange-400" overlayClass="bg-white/1" /></div>
+                <div className="fade-up-4"><StatCard icon={<AlertOctagon size={20} strokeWidth={1.5} />} label="Critical Items" value={stats.critical_count} gradient="bg-red-500" overlayClass="bg-white/1" /></div>
               </div>
 
               {/* Location status grid */}

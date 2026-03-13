@@ -7,7 +7,7 @@
 
   body {
     font-family: 'DM Sans', sans-serif;
-    @apply bg-slate-50 text-slate-800 antialiased;
+    @apply bg-[radial-gradient(circle_at_top_left,rgba(45,212,191,0.16),transparent_28%),radial-gradient(circle_at_top_right,rgba(249,115,22,0.18),transparent_24%),linear-gradient(180deg,#f8fafc_0%,#eef6f7_38%,#f8fafc_100%)] text-slate-800 antialiased;
   }
 
   h1,
@@ -115,15 +115,15 @@
   }
 
   .badge-super {
-    @apply bg-violet-100 text-violet-700;
+    @apply bg-gradient-to-r from-violet-500/95 to-purple-600/95 text-white rounded-2xl shadow-lg hover:shadow-xl border border-purple-400/50 backdrop-blur-sm transition-all duration-300;
   }
 
   .badge-admin {
-    @apply bg-blue-100 text-blue-700;
+    @apply bg-gradient-to-r from-blue-500/95 to-cyan-600/95 text-white rounded-2xl shadow-lg hover:shadow-xl border border-cyan-400/40 backdrop-blur-sm transition-all duration-300;
   }
 
   .badge-kitchen {
-    @apply bg-emerald-100 text-emerald-700;
+    @apply bg-gradient-to-r from-emerald-500/95 to-teal-600/95 text-white rounded-2xl shadow-lg hover:shadow-xl border border-teal-400/40 backdrop-blur-sm transition-all duration-300;
   }
 
   .badge-active {
@@ -136,7 +136,7 @@
 
   /* Sidebar */
   .sidebar-link {
-    @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:bg-white/10 hover:text-white transition-all duration-150 cursor-pointer;
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:bg-amber-500 hover:text-white transition-all duration-150 cursor-pointer;
   }
 
   .sidebar-link.active {
@@ -145,7 +145,8 @@
 
   /* Stat card */
   .stat-card {
-    @apply rounded-2xl p-5 text-white relative overflow-hidden;
+    @apply  p-5 text-white relative overflow-hidden;
+    border-radius: 50px;
   }
 }
 

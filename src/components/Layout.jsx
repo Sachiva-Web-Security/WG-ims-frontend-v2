@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { RoleBadge } from "@/components/UI";
 import api from "@/lib/axios";
+import { User, KeyRound, LogOut, Lock, CheckCircle2, AlertTriangle, Menu, ChevronLeft, ChevronRight } from "lucide-react";
 
 export function Layout({ children, nav }) {
   const { user, logout } = useAuth();
@@ -118,7 +119,7 @@ export function Layout({ children, nav }) {
               {/* User name with icon */}
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center flex-shrink-0 shadow-lg group-hover:shadow-xl transition-all duration-300">
-                  <span className="text-white font-bold text-xs">👤</span>
+                  <User size={14} className="text-white" strokeWidth={3} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-white text-xs font-semibold truncate leading-tight group-hover:text-amber-100 transition-colors">
@@ -142,7 +143,7 @@ export function Layout({ children, nav }) {
                   className="w-full text-left px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-amber-500/20 to-amber-600/10 hover:from-amber-500/40 hover:to-amber-600/30 border border-amber-500/30 hover:border-amber-500/60 transition-all duration-300 group/btn"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-sm">🔑</span>
+                    <KeyRound size={14} className="text-amber-300 group-hover/btn:text-amber-200" />
                     <span className="text-xs font-semibold text-amber-300 group-hover/btn:text-amber-200 transition-colors">
                       Change Password
                     </span>
@@ -153,7 +154,7 @@ export function Layout({ children, nav }) {
                   className="w-full text-left px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-red-500/20 to-red-600/10 hover:from-red-500/40 hover:to-red-600/30 border border-red-500/30 hover:border-red-500/60 transition-all duration-300 group/btn"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-sm">🚪</span>
+                    <LogOut size={14} className="text-red-300 group-hover/btn:text-red-200" />
                     <span className="text-xs font-semibold text-red-300 group-hover/btn:text-red-200 transition-colors">
                       Sign out
                     </span>
@@ -168,14 +169,14 @@ export function Layout({ children, nav }) {
                 className="sidebar-link w-full justify-center text-amber-400 hover:text-amber-300 hover:bg-white/10"
                 title="Change Password"
               >
-                🔑
+                <KeyRound size={18} />
               </button>
               <button
                 onClick={logout}
                 className="sidebar-link w-full justify-center text-red-400 hover:text-red-300 hover:bg-white/10"
                 title="Sign out"
               >
-                🚪
+                <LogOut size={18} />
               </button>
             </div>
           )}
@@ -186,7 +187,7 @@ export function Layout({ children, nav }) {
           onClick={() => setCollapsed(!collapsed)}
           className="hidden lg:flex absolute -right-3 top-20 w-6 h-6 rounded-full bg-slate-900 border border-white/10 items-center justify-center text-white text-xs hover:bg-slate-700 transition-colors"
         >
-          {collapsed ? "›" : "‹"}
+          {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
         </button>
       </aside>
 
@@ -194,7 +195,7 @@ export function Layout({ children, nav }) {
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="lg:hidden flex items-center justify-between bg-white border-b border-slate-100 px-4 py-3">
           <button onClick={() => setMobileOpen(true)} className="btn-ghost">
-            ☰
+            <Menu size={20} />
           </button>
           <p className="font-bold text-slate-800 font-heading text-sm">
             WavaGrill IMS
@@ -217,7 +218,7 @@ export function Layout({ children, nav }) {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
-                    <span className="text-xl">🔐</span>
+                    <Lock size={20} />
                   </div>
                   <div>
                     <h3 className="font-bold text-lg font-heading">
@@ -241,7 +242,7 @@ export function Layout({ children, nav }) {
               {pwSuccess ? (
                 <div className="text-center py-8">
                   <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4 animate-pulse">
-                    <span className="text-3xl">✅</span>
+                    <CheckCircle2 size={32} className="text-emerald-500" />
                   </div>
                   <p className="font-semibold text-emerald-700 text-lg">
                     Password updated!
@@ -305,7 +306,7 @@ export function Layout({ children, nav }) {
                   </div>
                   {pwError && (
                     <div className="p-3 bg-gradient-to-r from-red-50 to-rose-50 border border-red-200 rounded-xl flex items-start gap-2.5">
-                      <span className="text-lg flex-shrink-0">⚠️</span>
+                    <AlertTriangle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
                       <p className="text-xs text-red-700 font-medium">
                         {pwError}
                       </p>
@@ -330,7 +331,9 @@ export function Layout({ children, nav }) {
                           Updating…
                         </span>
                       ) : (
-                        "🔑 Change Password"
+                        <span className="flex items-center gap-2">
+                          <KeyRound size={14} /> Change Password
+                        </span>
                       )}
                     </button>
                   </div>

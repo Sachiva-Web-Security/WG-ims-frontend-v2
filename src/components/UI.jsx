@@ -11,7 +11,7 @@ export function StatusBadge({ status }) {
   );
 }
 
-import { ShieldCheck, ChefHat, Store } from "lucide-react";
+import { ShieldCheck, ChefHat, Store, User, Package, Search } from "lucide-react";
 
 // ─── Role Badge ───────────────────────────────────────────────────────────────
 export function RoleBadge({ role }) {
@@ -19,32 +19,32 @@ export function RoleBadge({ role }) {
     SUPER_ADMIN: {
       className: "badge-super",
       label: "Super Admin",
-      emoji: "🛡",
+      icon: <ShieldCheck size={14} strokeWidth={3} />,
     },
     ADMIN: {
       className: "badge-admin",
       label: "Admin",
-      emoji: "👨‍🍳",
+      icon: <ChefHat size={14} strokeWidth={3} />,
     },
     KITCHEN_USER: {
       className: "badge-kitchen",
       label: "Kitchen",
-      emoji: "📦",
+      icon: <Package size={14} strokeWidth={3} />,
     },
   };
 
   const config = configs[role] || {
     className: "badge bg-slate-100 text-slate-500",
     label: role,
-    emoji: "👤",
+    icon: <User size={14} strokeWidth={3} />,
   };
 
   return (
     <span
       className={`${config.className} inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-bold cursor-default transition-all duration-300 hover:shadow-md hover:scale-105 group`}
     >
-      <span className="text-base group-hover:scale-125 transition-transform duration-300">
-        {config.emoji}
+      <span className="group-hover:scale-110 transition-transform duration-300 flex items-center justify-center">
+        {config.icon}
       </span>
       {config.label}
     </span>
@@ -226,8 +226,8 @@ export function ConfirmDialog({
 export function SearchInput({ value, onChange, placeholder = "Search…" }) {
   return (
     <div className="relative">
-      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">
-        🔍
+      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+        <Search size={16} strokeWidth={2.5} />
       </span>
       <input
         className="input pl-9"

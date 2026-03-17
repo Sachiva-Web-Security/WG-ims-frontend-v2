@@ -2,10 +2,11 @@
 import { useState, useEffect } from 'react';
 import { Layout } from '@/components/Layout';
 import { StatusBadge, StockBar, StatCard, Spinner, Empty, Modal, SearchInput, SectionHeader, Field, TableSkeleton } from '@/components/UI';
+import { SupplyBill } from '@/components/SupplyBill';
 import { useToast } from '@/context/ToastContext';
 import { UnitSelect } from '@/utils/units';
 import api from '@/lib/axios';
-import { LayoutDashboard, Store, Salad, Truck, ScrollText, AlertTriangle, AlertOctagon, Info, Package, Check, X } from 'lucide-react';
+import { LayoutDashboard, Store, Salad, Truck, ScrollText, FileText, AlertTriangle, AlertOctagon, Info, Package, Check, X } from 'lucide-react';
 
 const NAV = [
   { key: 'overview', icon: <LayoutDashboard size={20} />, label: 'Overview' },
@@ -31,8 +32,11 @@ export default function AdminDashboard() {
   const [ingModal, setIngModal] = useState(false);
   const [ingForm, setIngForm] = useState({ name: '', unit: 'lb' });
   const [ingLoading, setIngLoading] = useState(false);
-  const [dispatch, setDispatch] = useState({ location_id: '', ingredient_id: '', quantity: '', notes: '' });
+  const [dispatch, setDispatch] = useState({ location_id: '', items: [], notes: '' });
+  const [currentDispatchItem, setCurrentDispatchItem] = useState({ ingredient_id: '', quantity: '' });
   const [dispatching, setDispatching] = useState(false);
+  const [selectedBill, setSelectedBill] = useState(null);
+  const [billModal, setBillModal] = useState(false);
 
   useEffect(() => { loadInitial(); }, []);
   useEffect(() => {
@@ -63,7 +67,26 @@ export default function AdminDashboard() {
   const loadLocations = async () => { const r = await api.get('/admin/locations'); setLocations(r.data); };
   const loadInventory = async (id) => { setInvLoading(true); const r = await api.get(`/admin/locations/${id}/inventory`); setInventory(r.data); setInvLoading(false); };
   const loadIngredients = async () => { const r = await api.get('/admin/ingredients'); setIngredients(r.data); };
-  const loadHistory = async () => { const r = await api.get('/admin/supply/history'); setHistory(r.data); };
+  const loadHistory = async () => {
+    const r = await api.get('/admin/supply/history');
+    // Group records by batch_id
+    const grouped = r.data.reduce((acc, curr) => {
+      const bid = curr.batch_id || `SINGLE-${curr.id}`;
+      if (!acc[bid]) {
+        acc[bid] = {
+          ...curr,
+          items: []
+        };
+      }
+      acc[bid].items.push({
+        name: curr.ingredient_name,
+        quantity: curr.quantity_dispatched,
+        unit: curr.unit
+      });
+      return acc;
+    }, {});
+    setHistory(Object.values(grouped));
+  };
 
   const createIngredient = async (e) => {
     e.preventDefault(); setIngLoading(true);
@@ -76,17 +99,56 @@ export default function AdminDashboard() {
     setIngLoading(false);
   };
 
+  const addDispatchItem = () => {
+    if (!currentDispatchItem.ingredient_id || !currentDispatchItem.quantity) return;
+    const ing = ingredients.find(i => String(i.id) === String(currentDispatchItem.ingredient_id));
+    setDispatch(prev => ({
+      ...prev,
+      items: [...prev.items, {
+        ...currentDispatchItem,
+        name: ing?.name,
+        unit: ing?.unit
+      }]
+    }));
+    setCurrentDispatchItem({ ingredient_id: '', quantity: '' });
+  };
+
+  const removeDispatchItem = (index) => {
+    setDispatch(prev => ({
+      ...prev,
+      items: prev.items.filter((_, i) => i !== index)
+    }));
+  };
+
   const dispatchSupply = async (e) => {
-    e.preventDefault(); setDispatching(true);
+    e.preventDefault();
+    if (!dispatch.location_id || dispatch.items.length === 0) return;
+
+    setDispatching(true);
     try {
-      await api.post('/admin/supply/dispatch', {
+      const res = await api.post('/admin/supply/dispatch', {
         location_id: parseInt(dispatch.location_id),
-        ingredient_id: parseInt(dispatch.ingredient_id),
-        quantity: parseFloat(dispatch.quantity),
+        items: dispatch.items.map(it => ({
+          ingredient_id: parseInt(it.ingredient_id),
+          quantity: parseFloat(it.quantity)
+        })),
         notes: dispatch.notes,
       });
-      toast('Supply dispatched!', 'success');
-      setDispatch({ location_id: '', ingredient_id: '', quantity: '', notes: '' });
+      toast('Supply batch dispatched!', 'success');
+
+      const loc = locations.find(l => String(l.id) === String(dispatch.location_id));
+
+      setSelectedBill({
+        batch_id: res.data.batch_id,
+        location_name: loc?.name,
+        items: dispatch.items,
+        notes: dispatch.notes,
+        dispatched_at: new Date().toISOString()
+      });
+      setBillModal(true);
+
+      setDispatch({ location_id: '', items: [], notes: '' });
+      loadDashboard();
     } catch (err) { toast(err.response?.data?.error || 'Dispatch failed', 'error'); }
     setDispatching(false);
   };
@@ -95,7 +157,7 @@ export default function AdminDashboard() {
   const totalLow = dashboard.reduce((s, l) => s + Number(l.low_count || 0), 0);
   const filteredInv = inventory.filter(i => i.ingredient_name.toLowerCase().includes(search.toLowerCase()));
   const currentLocName = locations.find(l => String(l.id) === String(selectedLoc))?.name;
-  const selectedIng = ingredients.find(i => String(i.id) === String(dispatch.ingredient_id));
+  const selectedIng = ingredients.find(i => String(i.id) === String(currentDispatchItem.ingredient_id));
 
   const nav = NAV.map(n => ({
     ...n, active: page === n.key,
@@ -269,10 +331,10 @@ export default function AdminDashboard() {
 
           {/* DISPATCH SUPPLY */}
           {page === 'dispatch' && (
-            <div className="max-w-lg fade-up">
-              <SectionHeader title="Dispatch Supply" sub="Send inventory from Central Kitchen to a location" />
-              <div className="card">
-                <form onSubmit={dispatchSupply} className="space-y-5">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 fade-up">
+              <div className="space-y-6">
+                <SectionHeader title="Dispatch Supply" sub="Add items to dispatch list" />
+                <div className="card space-y-5">
                   <Field label="Destination Location">
                     <select className="input" value={dispatch.location_id} required
                       onChange={e => setDispatch(d => ({ ...d, location_id: e.target.value }))}>
@@ -280,33 +342,82 @@ export default function AdminDashboard() {
                       {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
                     </select>
                   </Field>
-                  <Field label="Ingredient">
-                    <select className="input" value={dispatch.ingredient_id} required
-                      onClick={() => !ingredients.length && loadIngredients()}
-                      onChange={e => setDispatch(d => ({ ...d, ingredient_id: e.target.value }))}>
-                      <option value="">Select an ingredient…</option>
-                      {ingredients.map(i => <option key={i.id} value={i.id}>{i.name} — {i.unit}</option>)}
-                    </select>
-                  </Field>
-                  <Field label="Quantity">
-                    <div className="flex gap-2">
-                      <input className="input flex-1" type="number" step="0.01" min="0.01" placeholder="0.00"
-                        value={dispatch.quantity} required onChange={e => setDispatch(d => ({ ...d, quantity: e.target.value }))} />
-                      <div className="input w-20 text-center bg-slate-50 text-slate-500 text-sm pointer-events-none">
-                        {selectedIng?.unit || 'unit'}
+
+                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-4">
+                    <h4 className="text-sm font-bold text-slate-700">Add Ingredient</h4>
+                    <Field label="Ingredient">
+                      <select className="input bg-white" value={currentDispatchItem.ingredient_id}
+                        onClick={() => !ingredients.length && loadIngredients()}
+                        onChange={e => setCurrentDispatchItem(d => ({ ...d, ingredient_id: e.target.value }))}>
+                        <option value="">Select an ingredient…</option>
+                        {ingredients.map(i => <option key={i.id} value={i.id}>{i.name} — {i.unit}</option>)}
+                      </select>
+                    </Field>
+                    <Field label="Quantity">
+                      <div className="flex gap-2">
+                        <input className="input flex-1 bg-white" type="number" step="0.01" min="0.01" placeholder="0.00"
+                          value={currentDispatchItem.quantity}
+                          onChange={e => setCurrentDispatchItem(d => ({ ...d, quantity: e.target.value }))} />
+                        <div className="input w-20 text-center bg-slate-100 text-slate-500 text-sm pointer-events-none">
+                          {selectedIng?.unit || 'unit'}
+                        </div>
                       </div>
-                    </div>
-                  </Field>
-                  <Field label="Notes (optional)">
+                    </Field>
+                    <button type="button" onClick={addDispatchItem}
+                      disabled={!currentDispatchItem.ingredient_id || !currentDispatchItem.quantity}
+                      className="btn-secondary w-full justify-center">
+                      + Add to List
+                    </button>
+                  </div>
+
+                  <Field label="Batch Notes (optional)">
                     <input className="input" placeholder="e.g. Morning delivery batch"
                       value={dispatch.notes} onChange={e => setDispatch(d => ({ ...d, notes: e.target.value }))} />
                   </Field>
-                  <button type="submit" disabled={dispatching} className="btn-primary w-full justify-center py-3">
-                    {dispatching ? <span className="flex items-center gap-2">
-                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Dispatching…
-                    </span> : '🚚 Dispatch Supply'}
-                  </button>
-                </form>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <SectionHeader title="Dispatch List" sub={`${dispatch.items.length} items ready`} />
+                <div className="card p-0 flex flex-col min-h-[400px]">
+                  <div className="flex-1 overflow-auto">
+                    {dispatch.items.length === 0 ? (
+                      <Empty icon={<Package size={48} className="text-slate-200" />} message="No items added yet" />
+                    ) : (
+                      <div className="divide-y divide-slate-100">
+                        {dispatch.items.map((item, idx) => (
+                          <div key={idx} className="p-4 flex items-center justify-between group">
+                            <div>
+                              <p className="font-bold text-slate-800">{item.name}</p>
+                              <p className="text-sm text-amber-600 font-mono font-bold">{item.quantity} {item.unit}</p>
+                            </div>
+                            <button onClick={() => removeDispatchItem(idx)} className="p-2 text-slate-300 hover:text-red-500 transition-colors">
+                              <X size={18} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-4 border-t border-slate-100 bg-slate-50/50">
+                    <button
+                      onClick={dispatchSupply}
+                      disabled={dispatching || dispatch.items.length === 0 || !dispatch.location_id}
+                      className="btn-primary w-full justify-center py-4 text-lg shadow-lg shadow-blue-500/20"
+                    >
+                      {dispatching ? (
+                        <span className="flex items-center gap-2">
+                          <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          Processing…
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-2">
+                          <Truck size={20} /> Confirm & Dispatch Batch
+                        </span>
+                      )}
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -318,22 +429,42 @@ export default function AdminDashboard() {
               <div className="card p-0 overflow-hidden">
                 <div className="table-wrap">
                   <table className="table">
-                    <thead><tr>{['Date & Time', 'Location', 'Ingredient', 'Qty Dispatched', 'Notes'].map(h => <th key={h}>{h}</th>)}</tr></thead>
+                    <thead><tr>{['Date & Time', 'Location', 'Ingredient', 'Qty Dispatched', 'Notes', 'Action'].map(h => <th key={h}>{h}</th>)}</tr></thead>
                     <tbody>
                       {history.map((h, i) => (
                         <tr key={i}>
                           <td className="text-slate-400 text-xs whitespace-nowrap">{new Date(h.dispatched_at).toLocaleString()}</td>
                           <td className="font-medium">{h.location_name}</td>
-                          <td>{h.ingredient_name}</td>
                           <td>
-                            <span className="bg-amber-50 text-amber-700 font-bold text-sm px-2 py-0.5 rounded-lg">
-                              {h.quantity_dispatched} {h.unit}
-                            </span>
+                            {h.items?.length > 1 ? (
+                              <span className="flex items-center gap-1.5 text-blue-600 font-bold">
+                                <Package size={14} /> {h.items.length} Items Batch
+                              </span>
+                            ) : (
+                              <span className="text-slate-700">{h.ingredient_name}</span>
+                            )}
                           </td>
-                          <td className="text-slate-400">{h.notes || '—'}</td>
+                          <td>
+                            {h.items?.length > 1 ? (
+                              <span className="text-xs font-bold text-slate-400 uppercase tracking-tighter">Multiple Items</span>
+                            ) : (
+                              <span className="bg-amber-50 text-amber-700 font-bold text-sm px-2 py-0.5 rounded-lg whitespace-nowrap">
+                                {h.quantity_dispatched} {h.unit}
+                              </span>
+                            )}
+                          </td>
+                          <td className="text-slate-400 max-w-[150px] truncate">{h.notes || '—'}</td>
+                          <td>
+                            <button
+                              onClick={() => { setSelectedBill(h); setBillModal(true); }}
+                              className="text-blue-600 hover:text-blue-800 text-xs font-bold flex items-center gap-1 group"
+                            >
+                              <FileText size={14} className="group-hover:scale-110 transition-transform" /> View Bill
+                            </button>
+                          </td>
                         </tr>
                       ))}
-                      {!history.length && <tr><td colSpan="5"><Empty icon="📜" message="No dispatch records yet" /></td></tr>}
+                      {!history.length && <tr><td colSpan="6"><Empty icon="📜" message="No dispatch records yet" /></td></tr>}
                     </tbody>
                   </table>
                 </div>
@@ -364,6 +495,12 @@ export default function AdminDashboard() {
           </div>
         </form>
       </Modal>
+
+      <SupplyBill
+        isOpen={billModal}
+        onClose={() => setBillModal(false)}
+        dispatch={selectedBill}
+      />
     </Layout>
   );
 }

@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Layout } from '@/components/Layout';
 import { StatusBadge, StockBar, StatCard, Spinner, Empty, SectionHeader } from '@/components/UI';
+import { SupplyBill } from '@/components/SupplyBill';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import api from '@/lib/axios';
@@ -23,6 +24,8 @@ export default function KitchenDashboard() {
   const [updates, setUpdates] = useState({});
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [selectedBill, setSelectedBill] = useState(null);
+  const [billModal, setBillModal] = useState(false);
 
   useEffect(() => { loadInitial(); }, []);
   useEffect(() => { if (page === 'history') loadHistory(); }, [page]);
@@ -291,7 +294,7 @@ export default function KitchenDashboard() {
                 <div className="card p-0 overflow-hidden">
                   <div className="table-wrap">
                     <table className="table">
-                      <thead><tr>{['Date & Time', 'Ingredient', 'Quantity Received', 'Notes'].map(h => <th key={h}>{h}</th>)}</tr></thead>
+                      <thead><tr>{['Date & Time', 'Ingredient', 'Quantity Received', 'Notes', 'Action'].map(h => <th key={h}>{h}</th>)}</tr></thead>
                       <tbody>
                         {history.map((h, i) => (
                           <tr key={i}>
@@ -303,9 +306,17 @@ export default function KitchenDashboard() {
                               </span>
                             </td>
                             <td className="text-slate-400">{h.notes || '—'}</td>
+                            <td>
+                              <button 
+                                onClick={() => { setSelectedBill(h); setBillModal(true); }}
+                                className="text-blue-600 hover:text-blue-800 text-xs font-bold flex items-center gap-1 group"
+                              >
+                                <ScrollText size={14} className="group-hover:scale-110 transition-transform" /> View Bill
+                              </button>
+                            </td>
                           </tr>
                         ))}
-                        {!history.length && <tr><td colSpan="4"><Empty icon={<ScrollText size={48} className="mx-auto text-slate-300" />} message="No deliveries yet" sub="Supply history will appear here once the Central Kitchen dispatches to your location." /></td></tr>}
+                        {!history.length && <tr><td colSpan="5"><Empty icon={<ScrollText size={48} className="mx-auto text-slate-300" />} message="No deliveries yet" sub="Supply history will appear here once the Central Kitchen dispatches to your location." /></td></tr>}
                       </tbody>
                     </table>
                   </div>
@@ -315,6 +326,11 @@ export default function KitchenDashboard() {
           )}
         </>
       )}
+      <SupplyBill 
+        isOpen={billModal} 
+        onClose={() => setBillModal(false)} 
+        dispatch={{...selectedBill, location_name: location?.name}} 
+      />
     </Layout>
   );
 }

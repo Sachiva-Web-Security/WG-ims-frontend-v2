@@ -62,12 +62,13 @@ export function Layout({ children, nav }) {
       {/* Sidebar */}
       <aside
         className={`
-        ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
-        lg:translate-x-0 fixed lg:relative z-50
-        ${collapsed ? "lg:w-16" : "lg:w-60"}
-        w-60 h-full flex flex-col bg-slate-900
-        transition-all duration-300 ease-in-out flex-shrink-0
-      `}
+          ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
+          lg:translate-x-0 fixed lg:relative z-50
+          ${collapsed ? "lg:w-16" : "lg:w-60"}
+          w-60 h-full flex flex-col bg-slate-900
+          transition-all duration-300 ease-in-out flex-shrink-0
+          print-hidden
+        `}
       >
         {/* Logo */}
         <div
@@ -193,7 +194,7 @@ export function Layout({ children, nav }) {
 
       {/* Main */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="lg:hidden flex items-center justify-between bg-white border-b border-slate-100 px-4 py-3">
+        <header className="lg:hidden flex items-center justify-between bg-white border-b border-slate-100 px-4 py-3 print-hidden">
           <button onClick={() => setMobileOpen(true)} className="btn-ghost">
             <Menu size={20} />
           </button>

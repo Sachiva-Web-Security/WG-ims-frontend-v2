@@ -683,14 +683,16 @@ export default function AdminDashboard() {
           }
           #wg-print-area {
             display: block !important;
-            position: fixed !important;
-            inset: 0 !important;
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: auto !important;
             padding: 20px !important;
             background: #fff !important;
             color: #000 !important;
             font-family: Arial, sans-serif !important;
             font-size: 12px !important;
-            overflow: visible !important;
             z-index: 99999 !important;
           }
           @page {

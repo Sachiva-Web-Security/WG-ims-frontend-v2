@@ -113,26 +113,18 @@ export default function AdminDashboard() {
   `;
 
   const triggerPrint = (html) => {
-    const win = window.open('', '_blank', 'width=900,height=700');
-    win.document.write(`
-      <!DOCTYPE html><html><head>
-        <title>WavaGrill — Inventory Report</title>
-        <style>
-          * { box-sizing: border-box; margin: 0; padding: 0; }
-          body { font-family: Arial, sans-serif; color: #000; background: #fff; padding: 24px; }
-          h1 { font-size: 20px; font-weight: 900; text-transform: uppercase; margin-bottom: 4px; }
-          .meta { font-size: 11px; color: #555; margin-bottom: 24px; }
-          @page { margin: 15mm; }
-          @media print { body { padding: 0; } }
-        </style>
-      </head><body>
-        <h1>WavaGrill — Inventory Report</h1>
-        <p class="meta">Printed: ${new Date().toLocaleString()} &nbsp;|&nbsp; WavaGrill IMS</p>
-        ${html}
-        <script>window.onload=function(){window.print();window.onafterprint=function(){window.close();}}</script>
-      </body></html>
-    `);
-    win.document.close();
+    // Mobile-safe: inject into current page instead of window.open()
+    const printDate = new Date().toLocaleString();
+    const container = document.getElementById('wg-print-area');
+    if (!container) return;
+    container.innerHTML = `
+      <h1 style="font-size:18px;font-weight:900;text-transform:uppercase;margin-bottom:4px">WavaGrill — Inventory Report</h1>
+      <p style="font-size:11px;color:#555;margin-bottom:24px">Printed: ${printDate} &nbsp;|&nbsp; WavaGrill IMS</p>
+      ${html}
+    `;
+    window.print();
+    // Clear after printing
+    setTimeout(() => { container.innerHTML = ''; }, 1000);
   };
 
   const printCurrentLocation = () => {
@@ -674,6 +666,39 @@ export default function AdminDashboard() {
           `}</style>
         </div>
       )}
+      {/* Hidden print area — visible only during window.print() via @media print */}
+      <div id="wg-print-area" aria-hidden="true" />
+
+      <style>{`
+        #wg-print-area {
+          display: none;
+        }
+        @media print {
+          body * {
+            visibility: hidden !important;
+          }
+          #wg-print-area,
+          #wg-print-area * {
+            visibility: visible !important;
+          }
+          #wg-print-area {
+            display: block !important;
+            position: fixed !important;
+            inset: 0 !important;
+            padding: 20px !important;
+            background: #fff !important;
+            color: #000 !important;
+            font-family: Arial, sans-serif !important;
+            font-size: 12px !important;
+            overflow: visible !important;
+            z-index: 99999 !important;
+          }
+          @page {
+            margin: 12mm;
+            size: auto;
+          }
+        }
+      `}</style>
     </Layout>
   );
 }

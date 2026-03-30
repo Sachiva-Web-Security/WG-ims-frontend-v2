@@ -2,11 +2,10 @@
 import { useState, useEffect } from 'react';
 import { Layout } from '@/components/Layout';
 import { StatusBadge, StockBar, StatCard, Spinner, Empty, Modal, SearchInput, SectionHeader, Field, TableSkeleton } from '@/components/UI';
-import { SupplyBill } from '@/components/SupplyBill';
 import { useToast } from '@/context/ToastContext';
 import { UnitSelect } from '@/utils/units';
 import api from '@/lib/axios';
-import { LayoutDashboard, Store, Salad, Truck, ScrollText, FileText, AlertTriangle, AlertOctagon, Info, Package, Check, X } from 'lucide-react';
+import { LayoutDashboard, Store, Salad, Truck, ScrollText, FileText, AlertTriangle, AlertOctagon, Info, Package, Check, X, CheckCircle2, Printer, ChevronDown } from 'lucide-react';
 
 const NAV = [
   { key: 'overview', icon: <LayoutDashboard size={20} />, label: 'Overview' },
@@ -35,8 +34,9 @@ export default function AdminDashboard() {
   const [dispatch, setDispatch] = useState({ location_id: '', items: [], notes: '' });
   const [currentDispatchItem, setCurrentDispatchItem] = useState({ ingredient_id: '', quantity: '' });
   const [dispatching, setDispatching] = useState(false);
-  const [selectedBill, setSelectedBill] = useState(null);
-  const [billModal, setBillModal] = useState(false);
+  const [dispatchSuccess, setDispatchSuccess] = useState(null); // { locationName, itemCount }
+  const [allInventory, setAllInventory] = useState({}); // { [locId]: items[] }
+  const [printDropOpen, setPrintDropOpen] = useState(false);
 
   useEffect(() => { loadInitial(); }, []);
   useEffect(() => {
@@ -66,6 +66,90 @@ export default function AdminDashboard() {
   const loadDashboard = async () => { setLoading(true); const r = await api.get('/admin/dashboard'); setDashboard(r.data); setLoading(false); };
   const loadLocations = async () => { const r = await api.get('/admin/locations'); setLocations(r.data); };
   const loadInventory = async (id) => { setInvLoading(true); const r = await api.get(`/admin/locations/${id}/inventory`); setInventory(r.data); setInvLoading(false); };
+
+  // Fetch inventory for every location (used for Print All)
+  const loadAllInventory = async () => {
+    const results = {};
+    await Promise.all(
+      locations.map(async (loc) => {
+        try {
+          const r = await api.get(`/admin/locations/${loc.id}/inventory`);
+          results[loc.id] = r.data;
+        } catch { results[loc.id] = []; }
+      })
+    );
+    setAllInventory(results);
+    return results;
+  };
+
+  // ── Print helpers ─────────────────────────────────────────────────────────
+  const buildPrintTable = (locName, items) => `
+    <div style="margin-bottom:40px">
+      <h2 style="font-size:16px;font-weight:700;border-bottom:2px solid #000;padding-bottom:6px;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.05em">${locName}</h2>
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead>
+          <tr style="background:#000;color:#fff">
+            ${['Ingredient','Unit','Min','Max','Supplied','Current','Gap','Status'].map(h =>
+              `<th style="padding:6px 10px;text-align:left;border:1px solid #000">${h}</th>`
+            ).join('')}
+          </tr>
+        </thead>
+        <tbody>
+          ${items.map((item, i) => `
+            <tr style="background:${i % 2 === 0 ? '#fff' : '#f5f5f5'}">
+              <td style="padding:6px 10px;border:1px solid #ccc;font-weight:600">${item.ingredient_name}</td>
+              <td style="padding:6px 10px;border:1px solid #ccc">${item.unit}</td>
+              <td style="padding:6px 10px;border:1px solid #ccc">${item.min_quantity ?? '—'}</td>
+              <td style="padding:6px 10px;border:1px solid #ccc">${item.max_quantity}</td>
+              <td style="padding:6px 10px;border:1px solid #ccc">${item.already_supplied}</td>
+              <td style="padding:6px 10px;border:1px solid #ccc;font-weight:700">${item.current_quantity}</td>
+              <td style="padding:6px 10px;border:1px solid #ccc;font-weight:700">${parseFloat(item.gap) > 0 ? `${item.gap} ${item.unit}` : 'FULL'}</td>
+              <td style="padding:6px 10px;border:1px solid #ccc;font-weight:700">${item.status}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  const triggerPrint = (html) => {
+    const win = window.open('', '_blank', 'width=900,height=700');
+    win.document.write(`
+      <!DOCTYPE html><html><head>
+        <title>WavaGrill — Inventory Report</title>
+        <style>
+          * { box-sizing: border-box; margin: 0; padding: 0; }
+          body { font-family: Arial, sans-serif; color: #000; background: #fff; padding: 24px; }
+          h1 { font-size: 20px; font-weight: 900; text-transform: uppercase; margin-bottom: 4px; }
+          .meta { font-size: 11px; color: #555; margin-bottom: 24px; }
+          @page { margin: 15mm; }
+          @media print { body { padding: 0; } }
+        </style>
+      </head><body>
+        <h1>WavaGrill — Inventory Report</h1>
+        <p class="meta">Printed: ${new Date().toLocaleString()} &nbsp;|&nbsp; WavaGrill IMS</p>
+        ${html}
+        <script>window.onload=function(){window.print();window.onafterprint=function(){window.close();}}</script>
+      </body></html>
+    `);
+    win.document.close();
+  };
+
+  const printCurrentLocation = () => {
+    setPrintDropOpen(false);
+    const locName = locations.find(l => String(l.id) === String(selectedLoc))?.name || 'Location';
+    triggerPrint(buildPrintTable(locName, inventory));
+  };
+
+  const printAllLocations = async () => {
+    setPrintDropOpen(false);
+    toast('Loading all inventories…', 'info');
+    const allInv = await loadAllInventory();
+    const html = locations.map(loc =>
+      buildPrintTable(loc.name, allInv[loc.id] || [])
+    ).join('');
+    triggerPrint(html);
+  };
   const loadIngredients = async () => { const r = await api.get('/admin/ingredients'); setIngredients(r.data); };
   const loadHistory = async () => {
     const r = await api.get('/admin/supply/history');
@@ -126,7 +210,7 @@ export default function AdminDashboard() {
 
     setDispatching(true);
     try {
-      const res = await api.post('/admin/supply/dispatch', {
+      await api.post('/admin/supply/dispatch', {
         location_id: parseInt(dispatch.location_id),
         items: dispatch.items.map(it => ({
           ingredient_id: parseInt(it.ingredient_id),
@@ -134,21 +218,17 @@ export default function AdminDashboard() {
         })),
         notes: dispatch.notes,
       });
-      toast('Supply batch dispatched!', 'success');
 
       const loc = locations.find(l => String(l.id) === String(dispatch.location_id));
-
-      setSelectedBill({
-        batch_id: res.data.batch_id,
-        location_name: loc?.name,
-        items: dispatch.items,
-        notes: dispatch.notes,
-        dispatched_at: new Date().toISOString()
-      });
-      setBillModal(true);
+      const itemCount = dispatch.items.length;
 
       setDispatch({ location_id: '', items: [], notes: '' });
+      setCurrentDispatchItem({ ingredient_id: '', quantity: '' });
       loadDashboard();
+
+      // Show centered success overlay, auto-dismiss after 3s
+      setDispatchSuccess({ locationName: loc?.name, itemCount });
+      setTimeout(() => setDispatchSuccess(null), 3000);
     } catch (err) { toast(err.response?.data?.error || 'Dispatch failed', 'error'); }
     setDispatching(false);
   };
@@ -235,8 +315,39 @@ export default function AdminDashboard() {
                 title={currentLocName ? `${currentLocName} — Inventory` : 'Location Inventory'}
                 sub="View stock levels · Max/Min quantities managed by Super Admin"
                 action={
-                  <div className="flex gap-2 relative">
+                  <div className="flex gap-2 items-center relative">
                     <button onClick={() => loadInventory(selectedLoc)} className="btn-secondary whitespace-nowrap">🔄 Refresh</button>
+
+                    {/* Print dropdown */}
+                    <div className="relative">
+                      <button
+                        onClick={() => setPrintDropOpen(o => !o)}
+                        className="btn-secondary whitespace-nowrap flex items-center gap-1.5"
+                      >
+                        <Printer size={15} /> Print <ChevronDown size={14} />
+                      </button>
+                      {printDropOpen && (
+                        <>
+                          <div className="fixed inset-0 z-10" onClick={() => setPrintDropOpen(false)} />
+                          <div className="absolute right-0 top-full mt-1.5 z-20 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden min-w-[210px]">
+                            <button
+                              onClick={printCurrentLocation}
+                              className="w-full text-left px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 border-b border-slate-50"
+                            >
+                              <Printer size={15} className="text-slate-400" />
+                              Print Current Location
+                            </button>
+                            <button
+                              onClick={printAllLocations}
+                              className="w-full text-left px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2.5"
+                            >
+                              <FileText size={15} className="text-slate-400" />
+                              Print All Locations
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
                 }
               />
@@ -336,11 +447,37 @@ export default function AdminDashboard() {
                 <SectionHeader title="Dispatch Supply" sub="Add items to dispatch list" />
                 <div className="card space-y-5">
                   <Field label="Destination Location">
-                    <select className="input" value={dispatch.location_id} required
-                      onChange={e => setDispatch(d => ({ ...d, location_id: e.target.value }))}>
-                      <option value="">Select a location…</option>
-                      {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-                    </select>
+                    {dispatch.items.length > 0 ? (
+                      /* Location is LOCKED — items already in the batch */
+                      <div className="flex items-center gap-3">
+                        <div className="input flex-1 bg-slate-50 cursor-not-allowed flex items-center gap-2 text-slate-700 font-semibold select-none">
+                          <Store size={16} className="text-amber-500 flex-shrink-0" />
+                          <span className="truncate">
+                            {locations.find(l => String(l.id) === String(dispatch.location_id))?.name || 'Selected Location'}
+                          </span>
+                          <span className="ml-auto text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold flex-shrink-0">Locked</span>
+                        </div>
+                        <button
+                          type="button"
+                          title="Clear all items to change location"
+                          onClick={() => {
+                            if (window.confirm('Changing location will clear all items in the dispatch list. Continue?')) {
+                              setDispatch(d => ({ ...d, location_id: '', items: [] }));
+                            }
+                          }}
+                          className="flex-shrink-0 px-3 py-2 rounded-xl text-xs font-bold border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 hover:border-red-300 transition-all flex items-center gap-1.5 whitespace-nowrap"
+                        >
+                          <X size={13} /> Change
+                        </button>
+                      </div>
+                    ) : (
+                      /* Location is FREE to select */
+                      <select className="input" value={dispatch.location_id} required
+                        onChange={e => setDispatch(d => ({ ...d, location_id: e.target.value }))}>
+                        <option value="">Select a location…</option>
+                        {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                      </select>
+                    )}
                   </Field>
 
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-4">
@@ -496,11 +633,47 @@ export default function AdminDashboard() {
         </form>
       </Modal>
 
-      <SupplyBill
-        isOpen={billModal}
-        onClose={() => setBillModal(false)}
-        dispatch={selectedBill}
-      />
+      {/* Dispatch Success Overlay */}
+      {dispatchSuccess && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center pointer-events-none">
+          <div
+            className="bg-white rounded-3xl shadow-2xl border border-emerald-100 p-10 flex flex-col items-center gap-5 max-w-sm w-full mx-4"
+            style={{ animation: 'fadeInScale 0.35s cubic-bezier(0.34,1.56,0.64,1) both' }}
+          >
+            <div className="relative">
+              <div className="w-24 h-24 rounded-full bg-emerald-50 flex items-center justify-center">
+                <CheckCircle2 size={52} className="text-emerald-500" strokeWidth={1.5} />
+              </div>
+              <span className="absolute -top-1 -right-1 w-7 h-7 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg">
+                <Check size={14} className="text-white" strokeWidth={3} />
+              </span>
+            </div>
+            <div className="text-center">
+              <h2 className="text-2xl font-black text-slate-800 font-heading leading-tight">
+                Dispatched!
+              </h2>
+              <p className="text-slate-500 text-sm mt-1.5 leading-relaxed">
+                <span className="font-bold text-slate-700">{dispatchSuccess.itemCount} item{dispatchSuccess.itemCount !== 1 ? 's' : ''}</span>
+                {' '}successfully sent to
+              </p>
+              <p className="mt-1 px-4 py-1.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 font-bold text-sm inline-block">
+                📍 {dispatchSuccess.locationName}
+              </p>
+            </div>
+            <div className="flex gap-1.5 mt-1">
+              {[0,1,2].map(i => (
+                <span key={i} className="w-2 h-2 rounded-full bg-emerald-200" style={{ animation: `pulse 1.2s ${i * 0.2}s ease-in-out infinite` }} />
+              ))}
+            </div>
+          </div>
+          <style>{`
+            @keyframes fadeInScale {
+              from { opacity: 0; transform: scale(0.7); }
+              to   { opacity: 1; transform: scale(1); }
+            }
+          `}</style>
+        </div>
+      )}
     </Layout>
   );
 }

@@ -37,6 +37,8 @@ export default function AdminDashboard() {
   const [dispatchSuccess, setDispatchSuccess] = useState(null); // { locationName, itemCount }
   const [allInventory, setAllInventory] = useState({}); // { [locId]: items[] }
   const [printDropOpen, setPrintDropOpen] = useState(false);
+  const [selectedBill, setSelectedBill] = useState(null); // history record for bill modal
+  const [billModal, setBillModal] = useState(false);
 
   useEffect(() => { loadInitial(); }, []);
   useEffect(() => {
@@ -142,6 +144,137 @@ export default function AdminDashboard() {
     ).join('');
     triggerPrint(html);
   };
+  // ── Parcel label printer ─────────────────────────────────────────────────
+  const printParcelLabel = async ({ batchId, locationName, items, notes }) => {
+    const container = document.getElementById('wg-print-area');
+    if (!container) return;
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+
+    // Fetch logo and convert to base64 so it prints correctly (no broken src)
+    let logoDataUrl = '';
+    try {
+      const res = await fetch('/logo.png');
+      const blob = await res.blob();
+      logoDataUrl = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.readAsDataURL(blob);
+      });
+    } catch { /* logo optional */ }
+
+    const dash = '- - - - - - - - - - - - - - - - - - - - - - - -';
+    const eq   = '========================================';
+
+    container.innerHTML = `
+      <div style="
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 12px;
+        color: #000;
+        background: #fff;
+        width: 100%;
+        max-width: 360px;
+        margin: 0 auto;
+        padding: 18px 16px 12px;
+        border: 1.5px solid #000;
+        page-break-inside: avoid;
+      ">
+        <!-- Logo + Company name centered -->
+        <div style="text-align:center;margin-bottom:10px">
+          ${logoDataUrl ? `<img src="${logoDataUrl}" style="height:52px;width:52px;object-fit:contain;display:block;margin:0 auto 6px;filter:grayscale(100%)" />` : ''}
+          <div style="font-size:22px;font-weight:900;letter-spacing:0.08em;line-height:1">WAVAGRILL</div>
+          <div style="font-size:9px;letter-spacing:0.2em;margin-top:3px">SUPPLY DISPATCH BILL</div>
+          <div style="font-size:9px;margin-top:2px">${dateStr} &nbsp; ${timeStr}</div>
+        </div>
+
+        <!-- thick divider -->
+        <div style="border-top:2px solid #000;margin-bottom:8px"></div>
+
+        <!-- FROM / TO -->
+        <div style="display:flex;justify-content:space-between;margin-bottom:2px">
+          <div style="width:48%">
+            <div style="font-size:8px;font-weight:700;letter-spacing:0.15em;margin-bottom:2px">FROM</div>
+            <div style="font-weight:900;font-size:13px">Central Kitchen</div>
+            <div style="font-size:9px">WavaGrill HQ</div>
+          </div>
+          <div style="width:4%;text-align:center;font-size:18px;line-height:2">&#8594;</div>
+          <div style="width:48%;text-align:right">
+            <div style="font-size:8px;font-weight:700;letter-spacing:0.15em;margin-bottom:2px">TO</div>
+            <div style="font-weight:900;font-size:13px">${locationName}</div>
+            <div style="font-size:9px">WavaGrill Branch</div>
+          </div>
+        </div>
+
+        <!-- dashed divider -->
+        <div style="font-size:9px;letter-spacing:0.5px;white-space:nowrap;overflow:hidden;margin:8px 0;color:#000">${dash}</div>
+
+        <!-- Items header -->
+        <div style="display:flex;justify-content:space-between;font-size:9px;font-weight:700;letter-spacing:0.1em;margin-bottom:4px">
+          <span style="width:6%">#</span>
+          <span style="width:60%">ITEM</span>
+          <span style="width:34%;text-align:right">QTY</span>
+        </div>
+        <div style="border-top:1px solid #000;margin-bottom:4px"></div>
+
+        <!-- Items rows -->
+        ${items.map((it, i) => `
+          <div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 0;border-bottom:1px dashed #aaa">
+            <span style="width:6%;color:#555">${i + 1}</span>
+            <span style="width:60%;font-weight:700">${it.name}</span>
+            <span style="width:34%;text-align:right;font-weight:900">${it.quantity} ${it.unit}</span>
+          </div>
+        `).join('')}
+
+        <!-- dashed divider -->
+        <div style="font-size:9px;letter-spacing:0.5px;white-space:nowrap;overflow:hidden;margin:8px 0;color:#000">${dash}</div>
+
+        <!-- Notes -->
+        <div style="font-size:10px;margin-bottom:6px">
+          <span style="font-weight:700">NOTE: </span>
+          <span>${notes || 'No notes'}</span>
+        </div>
+
+        <!-- Batch ref -->
+        <div style="font-size:9px;letter-spacing:0.1em;margin-bottom:2px">BATCH REF</div>
+        <div style="font-size:12px;font-weight:900;letter-spacing:0.05em;margin-bottom:10px">${batchId || 'N/A'}</div>
+
+        <!-- thick bottom divider -->
+        <div style="font-size:9px;white-space:nowrap;overflow:hidden;margin-bottom:8px;color:#000">${eq}</div>
+
+        <!-- Footer -->
+        <div style="text-align:center;font-size:9px;letter-spacing:0.1em">
+          <div>*** WAVAGRILL IMS ***</div>
+          <div style="margin-top:2px">Thank you</div>
+          <div style="margin-top:4px;font-size:8px">${dateStr} ${timeStr}</div>
+        </div>
+      </div>
+    `;
+    // Wait for all images to fully load before printing (fixes blank logo on print)
+    const imgs = Array.from(container.querySelectorAll('img'));
+    if (imgs.length === 0) {
+      window.print();
+      setTimeout(() => { container.innerHTML = ''; }, 1500);
+    } else {
+      let loaded = 0;
+      const tryPrint = () => {
+        loaded++;
+        if (loaded >= imgs.length) {
+          window.print();
+          setTimeout(() => { container.innerHTML = ''; }, 1500);
+        }
+      };
+      imgs.forEach(img => {
+        if (img.complete && img.naturalWidth > 0) {
+          tryPrint(); // already decoded
+        } else {
+          img.onload = tryPrint;
+          img.onerror = tryPrint; // print even if logo fails to load
+        }
+      });
+    }
+  };
+
   const loadIngredients = async () => { const r = await api.get('/admin/ingredients'); setIngredients(r.data); };
   const loadHistory = async () => {
     const r = await api.get('/admin/supply/history');
@@ -202,7 +335,7 @@ export default function AdminDashboard() {
 
     setDispatching(true);
     try {
-      await api.post('/admin/supply/dispatch', {
+      const res = await api.post('/admin/supply/dispatch', {
         location_id: parseInt(dispatch.location_id),
         items: dispatch.items.map(it => ({
           ingredient_id: parseInt(it.ingredient_id),
@@ -213,6 +346,16 @@ export default function AdminDashboard() {
 
       const loc = locations.find(l => String(l.id) === String(dispatch.location_id));
       const itemCount = dispatch.items.length;
+      const dispatchedItems = [...dispatch.items]; // snapshot before reset
+      const dispatchNotes = dispatch.notes;
+
+      // Print parcel label immediately
+      printParcelLabel({
+        batchId: res.data?.batch_id,
+        locationName: loc?.name,
+        items: dispatchedItems,
+        notes: dispatchNotes,
+      });
 
       setDispatch({ location_id: '', items: [], notes: '' });
       setCurrentDispatchItem({ ingredient_id: '', quantity: '' });
@@ -666,6 +809,105 @@ export default function AdminDashboard() {
           `}</style>
         </div>
       )}
+      {/* ── Bill / dispatch detail modal ─────────────────────────────────── */}
+      {billModal && selectedBill && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}
+          onClick={() => setBillModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="bg-black text-white px-5 py-4 flex items-center justify-between">
+              <div>
+                <div className="text-lg font-black tracking-wide">WAVAGRILL</div>
+                <div className="text-xs text-gray-400 tracking-widest">SUPPLY DISPATCH BILL</div>
+              </div>
+              <button onClick={() => setBillModal(false)} className="text-gray-400 hover:text-white text-xl leading-none">✕</button>
+            </div>
+
+            {/* FROM / TO */}
+            <div className="flex border-b border-gray-200">
+              <div className="flex-1 px-5 py-3 border-r border-gray-200">
+                <div className="text-[10px] font-bold tracking-widest text-gray-400 mb-0.5">FROM</div>
+                <div className="font-black text-gray-900 text-sm">Central Kitchen</div>
+                <div className="text-xs text-gray-400">WavaGrill HQ</div>
+              </div>
+              <div className="flex-1 px-5 py-3 bg-gray-50">
+                <div className="text-[10px] font-bold tracking-widest text-gray-400 mb-0.5">TO</div>
+                <div className="font-black text-gray-900 text-sm">{selectedBill.location_name}</div>
+                <div className="text-xs text-gray-400">WavaGrill Branch</div>
+              </div>
+            </div>
+
+            {/* Meta */}
+            <div className="flex gap-4 px-5 py-2 bg-amber-50 border-b border-amber-100 text-xs text-amber-700">
+              <span><span className="font-bold">Date:</span> {new Date(selectedBill.dispatched_at).toLocaleString('en-IN')}</span>
+              <span><span className="font-bold">Batch:</span> #{selectedBill.batch_id || 'N/A'}</span>
+            </div>
+
+            {/* Items */}
+            <div className="px-5 py-3 max-h-52 overflow-y-auto">
+              <div className="text-[10px] font-bold tracking-widest text-gray-400 mb-2">
+                CONTENTS ({selectedBill.items?.length || 1} ITEM{(selectedBill.items?.length || 1) !== 1 ? 'S' : ''})
+              </div>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 text-xs text-gray-400">
+                    <th className="text-left py-1 font-semibold">#</th>
+                    <th className="text-left py-1 font-semibold">Ingredient</th>
+                    <th className="text-right py-1 font-semibold">Qty</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(selectedBill.items || [{ name: selectedBill.ingredient_name, quantity: selectedBill.quantity_dispatched, unit: selectedBill.unit }]).map((it, i) => (
+                    <tr key={i} className="border-b border-gray-50">
+                      <td className="py-1.5 text-gray-300 text-xs">{i + 1}</td>
+                      <td className="py-1.5 font-semibold text-gray-800">{it.name}</td>
+                      <td className="py-1.5 text-right font-bold text-amber-700">{it.quantity} {it.unit}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Notes */}
+            {selectedBill.notes && (
+              <div className="px-5 py-2 border-t border-gray-100 text-xs text-gray-500">
+                <span className="font-bold text-gray-700">Note:</span> {selectedBill.notes}
+              </div>
+            )}
+
+            {/* Footer */}
+            <div className="px-5 py-3 bg-gray-50 border-t border-gray-200 flex justify-between items-center gap-3">
+              <button
+                onClick={() => setBillModal(false)}
+                className="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-100 transition"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  setBillModal(false);
+                  printParcelLabel({
+                    batchId: selectedBill.batch_id,
+                    locationName: selectedBill.location_name,
+                    items: selectedBill.items || [{ name: selectedBill.ingredient_name, quantity: selectedBill.quantity_dispatched, unit: selectedBill.unit }],
+                    notes: selectedBill.notes,
+                  });
+                }}
+                className="flex items-center gap-2 px-5 py-2 bg-black text-white text-sm font-bold rounded-xl hover:bg-gray-800 transition"
+              >
+                🖨 Print Bill
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Hidden print area — visible only during window.print() via @media print */}
       <div id="wg-print-area" aria-hidden="true" />
 

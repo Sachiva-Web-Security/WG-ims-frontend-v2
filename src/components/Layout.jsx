@@ -5,7 +5,7 @@ import { RoleBadge } from "@/components/UI";
 import api from "@/lib/axios";
 import { User, KeyRound, LogOut, Lock, CheckCircle2, AlertTriangle, Menu, ChevronLeft, ChevronRight } from "lucide-react";
 
-export function Layout({ children, nav }) {
+export function Layout({ children, nav, onBeforeLogout }) {
   const { user, logout } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -48,6 +48,14 @@ export function Layout({ children, nav }) {
     setPwModal(false);
     setPwError("");
     setPwForm({ currentPassword: "", newPassword: "", confirm: "" });
+  };
+
+  const handleLogout = async () => {
+    if (onBeforeLogout) {
+      const canLeave = await Promise.resolve(onBeforeLogout());
+      if (!canLeave) return;
+    }
+    logout();
   };
 
   return (
@@ -151,7 +159,7 @@ export function Layout({ children, nav }) {
                   </div>
                 </button>
                 <button
-                  onClick={logout}
+                  onClick={handleLogout}
                   className="w-full text-left px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-red-500/20 to-red-600/10 hover:from-red-500/40 hover:to-red-600/30 border border-red-500/30 hover:border-red-500/60 transition-all duration-300 group/btn"
                 >
                   <div className="flex items-center gap-2">
@@ -173,7 +181,7 @@ export function Layout({ children, nav }) {
                 <KeyRound size={18} />
               </button>
               <button
-                onClick={logout}
+                onClick={handleLogout}
                 className="sidebar-link w-full justify-center text-red-400 hover:text-red-300 hover:bg-white/10"
                 title="Sign out"
               >

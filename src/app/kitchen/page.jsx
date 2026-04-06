@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { Layout } from '@/components/Layout';
-import { StatusBadge, StockBar, StatCard, Spinner, Empty, SectionHeader } from '@/components/UI';
+import { StatusBadge, StockBar, StatCard, Spinner, Empty, SectionHeader, Modal } from '@/components/UI';
 import { SupplyBill } from '@/components/SupplyBill';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
@@ -26,6 +26,10 @@ export default function KitchenDashboard() {
   const [dirty, setDirty] = useState(false);
   const [selectedBill, setSelectedBill] = useState(null);
   const [billModal, setBillModal] = useState(false);
+  const [unsavedModalOpen, setUnsavedModalOpen] = useState(false);
+  const [pendingPage, setPendingPage] = useState(null);
+  const [pendingLogout, setPendingLogout] = useState(false);
+  const [logoutResolver, setLogoutResolver] = useState(null);
 
   useEffect(() => { loadInitial(); }, []);
   useEffect(() => { if (page === 'history') loadHistory(); }, [page]);
@@ -76,14 +80,63 @@ export default function KitchenDashboard() {
       toast('Stock updated successfully!', 'success');
       setDirty(false);
       loadInventory();
-    } catch { toast('Update failed. Please try again.', 'error'); }
-    setSaving(false);
+      return true;
+    } catch {
+      toast('Update failed. Please try again.', 'error');
+      return false;
+    } finally {
+      setSaving(false);
+    }
   };
 
   const setQty = (ingId, val) => {
     setUpdates(u => ({ ...u, [ingId]: val }));
     setDirty(true);
   };
+
+  const openUnsavedModal = () => setUnsavedModalOpen(true);
+
+  const closeUnsavedModal = () => {
+    setUnsavedModalOpen(false);
+    setPendingPage(null);
+    setPendingLogout(false);
+    if (logoutResolver) {
+      logoutResolver(false);
+      setLogoutResolver(null);
+    }
+  };
+
+  const continuePendingAction = () => {
+    if (pendingPage) {
+      setPage(pendingPage);
+      setPendingPage(null);
+    }
+
+    if (pendingLogout && logoutResolver) {
+      logoutResolver(true);
+      setLogoutResolver(null);
+      setPendingLogout(false);
+    }
+
+    setUnsavedModalOpen(false);
+  };
+
+  const handleSaveAndContinue = async () => {
+    const ok = await submitUpdate();
+    if (!ok) return;
+    continuePendingAction();
+  };
+
+  useEffect(() => {
+    const handleBeforeUnload = (event) => {
+      if (!dirty) return;
+      event.preventDefault();
+      event.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [dirty]);
 
   const getStatus = (current, max) => {
     const pct = max > 0 ? (current / max) * 100 : 0;
@@ -99,12 +152,29 @@ export default function KitchenDashboard() {
 
   const nav = NAV.map(n => ({
     ...n, active: page === n.key,
-    onClick: () => setPage(n.key),
+    onClick: () => {
+      if (page === n.key) return;
+      if (dirty) {
+        setPendingPage(n.key);
+        setPendingLogout(false);
+        openUnsavedModal();
+        return;
+      }
+      setPage(n.key);
+    },
     badge: n.key === 'inventory' ? critical : 0,
   }));
 
+  const handleBeforeLogout = () => {
+    if (!dirty) return true;
+    setPendingPage(null);
+    setPendingLogout(true);
+    openUnsavedModal();
+    return new Promise((resolve) => setLogoutResolver(() => resolve));
+  };
+
   return (
-    <Layout nav={nav}>
+    <Layout nav={nav} onBeforeLogout={handleBeforeLogout}>
       {loading && page === 'inventory' ? <Spinner /> : (
         <>
           {/* INVENTORY */}
@@ -166,7 +236,7 @@ export default function KitchenDashboard() {
 
               {/* Inventory cards */}
               <div className="card p-0 overflow-hidden">
-                <div className="table-wrap">
+                <div className="hidden md:block table-wrap">
                   <table className="table">
                     <thead><tr>
                       {['Ingredient', 'Unit', 'Stock Level', 'Max', 'Supplied', 'Current', 'Gap', 'Status'].map(h =>
@@ -177,7 +247,7 @@ export default function KitchenDashboard() {
                         <tr key={item.id}>
                           <td className="font-medium text-slate-800">{item.ingredient_name}</td>
                           <td><span className="font-mono text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">{item.unit}</span></td>
-                          <td className="min-w-[140px]">
+                          <td className="min-w-35">
                             <StockBar current={item.current_quantity} max={item.max_quantity} />
                           </td>
                           <td className="text-slate-500">{item.max_quantity}</td>
@@ -195,6 +265,51 @@ export default function KitchenDashboard() {
                     </tbody>
                   </table>
                 </div>
+
+                <div className="md:hidden p-3 space-y-3">
+                  {inventory.map((item) => (
+                    <div key={item.id} className="rounded-xl border border-slate-200 bg-white p-3">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <p className="font-semibold text-slate-800 text-sm">{item.ingredient_name}</p>
+                        <StatusBadge status={item.status} />
+                      </div>
+
+                      <div className="mb-2">
+                        <StockBar current={item.current_quantity} max={item.max_quantity} />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+                        <div>
+                          <p className="text-slate-400">Unit</p>
+                          <p className="text-slate-700 font-medium">{item.unit}</p>
+                        </div>
+                        <div>
+                          <p className="text-slate-400">Max</p>
+                          <p className="text-slate-700 font-medium">{item.max_quantity}</p>
+                        </div>
+                        <div>
+                          <p className="text-slate-400">Supplied</p>
+                          <p className="text-blue-600 font-semibold">{item.already_supplied}</p>
+                        </div>
+                        <div>
+                          <p className="text-slate-400">Current</p>
+                          <p className="text-slate-800 font-semibold">{item.current_quantity}</p>
+                        </div>
+                      </div>
+
+                      <div className="mt-2 text-xs">
+                        <p className="text-slate-400">Gap</p>
+                        <p className={parseFloat(item.gap) > 0 ? 'text-red-600 font-bold' : 'text-emerald-600 font-semibold'}>
+                          {parseFloat(item.gap) > 0 ? `↓ ${item.gap} ${item.unit}` : 'Full'}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+
+                  {!inventory.length && (
+                    <Empty icon={<Package size={48} className="mx-auto text-slate-300" />} message="No inventory assigned" sub="Contact your admin to set up your location's inventory." />
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -204,17 +319,19 @@ export default function KitchenDashboard() {
             <div className="space-y-5 fade-up">
               <SectionHeader title="Update Stock" sub="Enter the actual on-hand quantity for each item." />
 
-              {dirty && (
-                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center gap-3">
+              <div className="min-h-[74px]">
+                <div
+                  className={`bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center gap-3 transition-all duration-150 ${dirty ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1 pointer-events-none'}`}
+                >
                   <span className="text-xl">💾</span>
                   <p className="text-sm text-amber-800 font-medium flex-1">You have unsaved changes.</p>
-                  <button onClick={submitUpdate} disabled={saving} className="btn-primary text-sm">
+                  <button onClick={submitUpdate} disabled={saving || !dirty} className="btn-primary text-sm">
                     {saving ? 'Saving…' : 'Save Now'}
                   </button>
                 </div>
-              )}
+              </div>
 
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {inventory.map(item => {
                   const cur = parseFloat(updates[item.ingredient_id] ?? item.current_quantity) || 0;
                   const status = getStatus(cur, item.max_quantity);
@@ -223,10 +340,10 @@ export default function KitchenDashboard() {
 
                   return (
                     <div key={item.ingredient_id}
-                      className={`card border-l-4 ${status === 'CRITICAL' ? 'border-l-red-500' : status === 'LOW' ? 'border-l-amber-400' : 'border-l-emerald-500'}`}>
-                      <div className="flex items-center gap-4">
+                      className={`card p-4 sm:p-5 border-l-4 ${status === 'CRITICAL' ? 'border-l-red-500' : status === 'LOW' ? 'border-l-amber-400' : 'border-l-emerald-500'}`}>
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                         <div className="flex-1">
-                          <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center justify-between gap-2 mb-2">
                             <p className="font-semibold text-slate-800">{item.ingredient_name}</p>
                             <StatusBadge status={status} />
                           </div>
@@ -239,27 +356,27 @@ export default function KitchenDashboard() {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2 flex-shrink-0">
+                        <div className="flex items-center justify-end gap-2 shrink-0">
                           <button
                             onClick={() => setQty(item.ingredient_id, Math.max(0, cur - 1))}
-                            className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold transition-colors flex items-center justify-center">
+                            className="w-9 h-9 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold transition-colors flex items-center justify-center">
                             −
                           </button>
-                          <div className="relative">
+                          <div className="flex flex-col items-center">
                             <input
                               type="number"
                               step="0.1"
                               min="0"
                               max={item.max_quantity}
-                              className="input w-24 text-center font-bold"
+                              className="input w-22 sm:w-24 h-10 text-center font-bold px-2"
                               value={updates[item.ingredient_id] ?? item.current_quantity}
                               onChange={e => setQty(item.ingredient_id, e.target.value)}
                             />
-                            <span className="absolute -bottom-4 left-0 right-0 text-center text-xs text-slate-400">{item.unit}</span>
+                            <span className="mt-1 text-[11px] text-slate-400">{item.unit}</span>
                           </div>
                           <button
                             onClick={() => setQty(item.ingredient_id, Math.min(item.max_quantity, cur + 1))}
-                            className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold transition-colors flex items-center justify-center">
+                            className="w-9 h-9 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold transition-colors flex items-center justify-center">
                             +
                           </button>
                         </div>
@@ -270,7 +387,7 @@ export default function KitchenDashboard() {
               </div>
 
               {inventory.length > 0 && (
-                <div className="sticky bottom-4">
+                <div className="sticky bottom-3 z-10 rounded-2xl bg-white/85 backdrop-blur-sm border border-slate-200 p-2 shadow-lg">
                   <button onClick={submitUpdate} disabled={saving || !dirty}
                     className={`btn-primary w-full justify-center py-4 text-base shadow-xl transition-all
                       ${dirty ? 'shadow-amber-500/30' : 'opacity-50 cursor-not-allowed'}`}>
@@ -279,7 +396,7 @@ export default function KitchenDashboard() {
                         <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                         Saving…
                       </span>
-                    ) : '✅ Submit Stock Update'}
+                    ) : 'Submit Stock Update'}
                   </button>
                 </div>
               )}
@@ -292,7 +409,7 @@ export default function KitchenDashboard() {
               <SectionHeader title="Supply Received" sub={`Deliveries to ${location?.name}`} />
               {loading ? <Spinner /> : (
                 <div className="card p-0 overflow-hidden">
-                  <div className="table-wrap">
+                  <div className="hidden md:block table-wrap">
                     <table className="table">
                       <thead><tr>{['Date & Time', 'Ingredient', 'Quantity Received', 'Notes', 'Action'].map(h => <th key={h}>{h}</th>)}</tr></thead>
                       <tbody>
@@ -320,6 +437,33 @@ export default function KitchenDashboard() {
                       </tbody>
                     </table>
                   </div>
+
+                  <div className="md:hidden p-3 space-y-3">
+                    {history.map((h, i) => (
+                      <div key={i} className="rounded-xl border border-slate-200 bg-white p-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="font-semibold text-slate-800 text-sm">{h.ingredient_name}</p>
+                          <span className="bg-emerald-50 text-emerald-700 font-bold text-xs px-2 py-0.5 rounded-lg">
+                            +{h.quantity_dispatched} {h.unit}
+                          </span>
+                        </div>
+
+                        <p className="text-xs text-slate-400 mt-2">{new Date(h.dispatched_at).toLocaleString()}</p>
+                        <p className="text-xs text-slate-500 mt-1">{h.notes || 'No notes'}</p>
+
+                        <button
+                          onClick={() => { setSelectedBill(h); setBillModal(true); }}
+                          className="mt-3 text-blue-600 hover:text-blue-800 text-xs font-bold flex items-center gap-1"
+                        >
+                          <ScrollText size={14} /> View Bill
+                        </button>
+                      </div>
+                    ))}
+
+                    {!history.length && (
+                      <Empty icon={<ScrollText size={48} className="mx-auto text-slate-300" />} message="No deliveries yet" sub="Supply history will appear here once the Central Kitchen dispatches to your location." />
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -331,6 +475,20 @@ export default function KitchenDashboard() {
         onClose={() => setBillModal(false)} 
         dispatch={{...selectedBill, location_name: location?.name}} 
       />
+
+      <Modal open={unsavedModalOpen} onClose={closeUnsavedModal} title="Unsaved Stock Changes" size="sm">
+        <p className="text-sm text-slate-600 mb-5">
+          You have unsaved stock changes. Save before leaving this page?
+        </p>
+        <div className="flex justify-end gap-3">
+          <button onClick={closeUnsavedModal} className="btn-secondary">
+            Cancel
+          </button>
+          <button onClick={handleSaveAndContinue} disabled={saving} className="btn-primary">
+            {saving ? 'Saving...' : 'Save'}
+          </button>
+        </div>
+      </Modal>
     </Layout>
   );
 }

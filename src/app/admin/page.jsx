@@ -179,7 +179,27 @@ export default function AdminDashboard() {
         padding: 18px 16px 12px;
         border: 1.5px solid #000;
         page-break-inside: avoid;
+        position: relative;
+        overflow: hidden;
       ">
+        <!-- Watermark logo (centered ghost behind content) -->
+        ${logoDataUrl ? `
+          <img src="${logoDataUrl}" style="
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 220px;
+            height: 220px;
+            object-fit: contain;
+            opacity: 0.07;
+            filter: grayscale(100%);
+            pointer-events: none;
+            z-index: 0;
+          " />
+        ` : ''}
+        <!-- Content sits above watermark -->
+        <div style="position:relative;z-index:1">
         <!-- Logo + Company name centered -->
         <div style="text-align:center;margin-bottom:10px">
           ${logoDataUrl ? `<img src="${logoDataUrl}" style="height:52px;width:52px;object-fit:contain;display:block;margin:0 auto 6px;filter:grayscale(100%)" />` : ''}
@@ -248,6 +268,7 @@ export default function AdminDashboard() {
           <div style="margin-top:2px">Thank you</div>
           <div style="margin-top:4px;font-size:8px">${dateStr} ${timeStr}</div>
         </div>
+        </div> <!-- /content wrapper -->
       </div>
     `;
     // Wait for all images to fully load before printing (fixes blank logo on print)
@@ -311,14 +332,31 @@ export default function AdminDashboard() {
   const addDispatchItem = () => {
     if (!currentDispatchItem.ingredient_id || !currentDispatchItem.quantity) return;
     const ing = ingredients.find(i => String(i.id) === String(currentDispatchItem.ingredient_id));
-    setDispatch(prev => ({
-      ...prev,
-      items: [...prev.items, {
-        ...currentDispatchItem,
-        name: ing?.name,
-        unit: ing?.unit
-      }]
-    }));
+    
+    setDispatch(prev => {
+      const existingItemIndex = prev.items.findIndex(
+        item => String(item.ingredient_id) === String(currentDispatchItem.ingredient_id)
+      );
+
+      if (existingItemIndex !== -1) {
+        const updatedItems = [...prev.items];
+        updatedItems[existingItemIndex] = {
+          ...updatedItems[existingItemIndex],
+          quantity: String(Number(updatedItems[existingItemIndex].quantity) + Number(currentDispatchItem.quantity))
+        };
+        return { ...prev, items: updatedItems };
+      }
+
+      return {
+        ...prev,
+        items: [...prev.items, {
+          ...currentDispatchItem,
+          name: ing?.name,
+          unit: ing?.unit
+        }]
+      };
+    });
+    
     setCurrentDispatchItem({ ingredient_id: '', quantity: '' });
   };
 
@@ -488,21 +526,42 @@ export default function AdminDashboard() {
               />
 
               {/* Location tabs */}
-              <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar">
-                <span className="text-sm font-medium text-slate-500 mr-2 whitespace-nowrap">Select Location:</span>
-                {locations.map(l => (
-                  <button
-                    key={l.id}
-                    onClick={() => setSelectedLoc(l.id)}
-                    className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2 border ${String(selectedLoc) === String(l.id)
-                      ? 'bg-slate-800 text-white border-slate-800 shadow-md transform scale-[1.02]'
-                      : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                      }`}
-                  >
-                    <Store size={16} />
-                    {l.name}
-                  </button>
-                ))}
+              <div className="space-y-2">
+                <span className="text-sm font-medium text-slate-500 block">Select Location:</span>
+
+                {/* Mobile: wrap chips to avoid clipping */}
+                <div className="flex flex-wrap gap-2 md:hidden">
+                  {locations.map(l => (
+                    <button
+                      key={l.id}
+                      onClick={() => setSelectedLoc(l.id)}
+                      className={`px-3 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2 border max-w-full ${String(selectedLoc) === String(l.id)
+                        ? 'bg-slate-800 text-white border-slate-800 shadow-sm'
+                        : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                        }`}
+                    >
+                      <Store size={16} className="shrink-0" />
+                      <span className="truncate">{l.name}</span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Desktop/tablet: keep horizontal chips */}
+                <div className="hidden md:flex items-center gap-2 overflow-x-auto pb-1 px-1 hide-scrollbar">
+                  {locations.map(l => (
+                    <button
+                      key={l.id}
+                      onClick={() => setSelectedLoc(l.id)}
+                      className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2 border ${String(selectedLoc) === String(l.id)
+                        ? 'bg-slate-800 text-white border-slate-800 shadow-md'
+                        : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                        }`}
+                    >
+                      <Store size={16} />
+                      {l.name}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Read-only notice */}
@@ -517,7 +576,7 @@ export default function AdminDashboard() {
 
               {invLoading ? <TableSkeleton rows={6} cols={6} /> : (
                 <div className="card p-0 overflow-hidden">
-                  <div className="table-wrap">
+                  <div className="hidden md:block table-wrap">
                     <table className="table">
                       <thead><tr>
                         {['Ingredient', 'Unit', 'Stock Level', 'Min', 'Max', 'Supplied', 'Current', 'Gap', 'Status'].map(h => <th key={h}>{h}</th>)}
@@ -527,7 +586,7 @@ export default function AdminDashboard() {
                           <tr key={item.id}>
                             <td className="font-medium text-slate-800">{item.ingredient_name}</td>
                             <td><span className="font-mono text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">{item.unit}</span></td>
-                            <td className="min-w-[120px]"><StockBar current={item.current_quantity} max={item.max_quantity} /></td>
+                            <td className="min-w-30"><StockBar current={item.current_quantity} max={item.max_quantity} /></td>
                             <td className="text-amber-600 font-medium">{item.min_quantity || '—'}</td>
                             <td className="text-slate-600">{item.max_quantity}</td>
                             <td className="text-blue-600">{item.already_supplied}</td>
@@ -544,6 +603,37 @@ export default function AdminDashboard() {
                       </tbody>
                     </table>
                   </div>
+
+                  <div className="md:hidden p-3 space-y-3">
+                    {filteredInv.map(item => (
+                      <div key={item.id} className="rounded-xl border border-slate-200 bg-white p-3">
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <p className="font-semibold text-slate-800 text-sm">{item.ingredient_name}</p>
+                          <StatusBadge status={item.status} />
+                        </div>
+
+                        <StockBar current={item.current_quantity} max={item.max_quantity} />
+
+                        <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs mt-3">
+                          <div><p className="text-slate-400">Unit</p><p className="text-slate-700 font-medium">{item.unit}</p></div>
+                          <div><p className="text-slate-400">Current</p><p className="text-slate-800 font-semibold">{item.current_quantity}</p></div>
+                          <div><p className="text-slate-400">Min</p><p className="text-amber-600 font-semibold">{item.min_quantity || '—'}</p></div>
+                          <div><p className="text-slate-400">Max</p><p className="text-slate-700 font-medium">{item.max_quantity}</p></div>
+                          <div><p className="text-slate-400">Supplied</p><p className="text-blue-600 font-semibold">{item.already_supplied}</p></div>
+                          <div>
+                            <p className="text-slate-400">Gap</p>
+                            <p className={parseFloat(item.gap) > 0 ? 'text-red-600 font-bold' : 'text-emerald-600 font-semibold'}>
+                              {parseFloat(item.gap) > 0 ? `${item.gap} ${item.unit}` : 'Full'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+
+                    {!filteredInv.length && (
+                      <Empty icon={<Package size={48} className="mx-auto text-slate-300" />} message="No inventory items" />
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -555,7 +645,7 @@ export default function AdminDashboard() {
               <SectionHeader title="Ingredients" sub="Master ingredient list · Admin can add, Super Admin manages limits"
                 action={<button onClick={() => setIngModal(true)} className="btn-primary">+ Add Ingredient</button>} />
               <div className="card p-0 overflow-hidden">
-                <div className="table-wrap">
+                <div className="hidden md:block table-wrap">
                   <table className="table">
                     <thead><tr>{['#', 'Ingredient', 'Unit', 'Status'].map(h => <th key={h}>{h}</th>)}</tr></thead>
                     <tbody>
@@ -571,26 +661,44 @@ export default function AdminDashboard() {
                     </tbody>
                   </table>
                 </div>
+
+                <div className="md:hidden p-3 space-y-3">
+                  {ingredients.map((ing) => (
+                    <div key={ing.id} className="rounded-xl border border-slate-200 bg-white p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="font-semibold text-slate-800 text-sm">{ing.name}</p>
+                          <p className="text-xs text-slate-400 font-mono">#{String(ing.id).padStart(3, '0')}</p>
+                        </div>
+                        <span className="badge-active">Active</span>
+                      </div>
+                      <p className="mt-2 text-xs text-slate-500">Unit</p>
+                      <span className="inline-block mt-1 bg-slate-100 text-slate-600 text-xs px-2.5 py-1 rounded-full font-mono">{ing.unit}</span>
+                    </div>
+                  ))}
+
+                  {!ingredients.length && <Empty icon="🥗" message="No ingredients yet" />}
+                </div>
               </div>
             </div>
           )}
 
           {/* DISPATCH SUPPLY */}
           {page === 'dispatch' && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 fade-up">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 fade-up">
               <div className="space-y-6">
                 <SectionHeader title="Dispatch Supply" sub="Add items to dispatch list" />
                 <div className="card space-y-5">
                   <Field label="Destination Location">
                     {dispatch.items.length > 0 ? (
                       /* Location is LOCKED — items already in the batch */
-                      <div className="flex items-center gap-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
                         <div className="input flex-1 bg-slate-50 cursor-not-allowed flex items-center gap-2 text-slate-700 font-semibold select-none">
-                          <Store size={16} className="text-amber-500 flex-shrink-0" />
+                          <Store size={16} className="text-amber-500 shrink-0" />
                           <span className="truncate">
                             {locations.find(l => String(l.id) === String(dispatch.location_id))?.name || 'Selected Location'}
                           </span>
-                          <span className="ml-auto text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold flex-shrink-0">Locked</span>
+                          <span className="ml-auto text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold shrink-0">Locked</span>
                         </div>
                         <button
                           type="button"
@@ -600,7 +708,7 @@ export default function AdminDashboard() {
                               setDispatch(d => ({ ...d, location_id: '', items: [] }));
                             }
                           }}
-                          className="flex-shrink-0 px-3 py-2 rounded-xl text-xs font-bold border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 hover:border-red-300 transition-all flex items-center gap-1.5 whitespace-nowrap"
+                          className="w-full sm:w-auto shrink-0 px-3 py-2 rounded-xl text-xs font-bold border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 hover:border-red-300 transition-all flex items-center justify-center gap-1.5 whitespace-nowrap"
                         >
                           <X size={13} /> Change
                         </button>
@@ -651,7 +759,7 @@ export default function AdminDashboard() {
 
               <div className="space-y-6">
                 <SectionHeader title="Dispatch List" sub={`${dispatch.items.length} items ready`} />
-                <div className="card p-0 flex flex-col min-h-[400px]">
+                <div className="card p-0 flex flex-col min-h-[250px] sm:min-h-[400px]">
                   <div className="flex-1 overflow-auto">
                     {dispatch.items.length === 0 ? (
                       <Empty icon={<Package size={48} className="text-slate-200" />} message="No items added yet" />
@@ -699,7 +807,7 @@ export default function AdminDashboard() {
             <div className="space-y-5 fade-up">
               <SectionHeader title="Supply History" sub="All dispatch records" />
               <div className="card p-0 overflow-hidden">
-                <div className="table-wrap">
+                <div className="hidden md:block table-wrap">
                   <table className="table">
                     <thead><tr>{['Date & Time', 'Location', 'Ingredient', 'Qty Dispatched', 'Notes', 'Action'].map(h => <th key={h}>{h}</th>)}</tr></thead>
                     <tbody>
@@ -739,6 +847,49 @@ export default function AdminDashboard() {
                       {!history.length && <tr><td colSpan="6"><Empty icon="📜" message="No dispatch records yet" /></td></tr>}
                     </tbody>
                   </table>
+                </div>
+
+                <div className="md:hidden p-3 space-y-3">
+                  {history.map((h, i) => (
+                    <div key={i} className="rounded-xl border border-slate-200 bg-white p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="font-semibold text-slate-800 text-sm">{h.location_name}</p>
+                          <p className="text-xs text-slate-400 mt-0.5">{new Date(h.dispatched_at).toLocaleString()}</p>
+                        </div>
+                        <button
+                          onClick={() => { setSelectedBill(h); setBillModal(true); }}
+                          className="text-blue-600 hover:text-blue-800 text-xs font-bold flex items-center gap-1"
+                        >
+                          <FileText size={13} /> View Bill
+                        </button>
+                      </div>
+
+                      <div className="mt-2 text-sm text-slate-700">
+                        {h.items?.length > 1 ? (
+                          <span className="flex items-center gap-1.5 text-blue-600 font-bold text-xs">
+                            <Package size={13} /> {h.items.length} Items Batch
+                          </span>
+                        ) : (
+                          <span>{h.ingredient_name}</span>
+                        )}
+                      </div>
+
+                      <div className="mt-2">
+                        {h.items?.length > 1 ? (
+                          <span className="text-xs font-bold text-slate-400 uppercase">Multiple Items</span>
+                        ) : (
+                          <span className="bg-amber-50 text-amber-700 font-bold text-xs px-2 py-0.5 rounded-lg">
+                            {h.quantity_dispatched} {h.unit}
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="mt-2 text-xs text-slate-500">{h.notes || 'No notes'}</p>
+                    </div>
+                  ))}
+
+                  {!history.length && <Empty icon="📜" message="No dispatch records yet" />}
                 </div>
               </div>
             </div>

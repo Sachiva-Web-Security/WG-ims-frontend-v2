@@ -477,7 +477,7 @@ export default function SuperAdminDashboard() {
                 <SearchInput value={search} onChange={setSearch} placeholder="Search ingredients…" />
               </div>
               <div className="card p-0 overflow-hidden">
-                <div className="table-wrap">
+                <div className="hidden md:block table-wrap">
                   <table className="table">
                     <thead><tr>
                       {['#', 'Ingredient', 'Unit', 'System', 'Status', ''].map(h => <th key={h}>{h}</th>)}
@@ -516,6 +516,36 @@ export default function SuperAdminDashboard() {
                       )}
                     </tbody>
                   </table>
+                </div>
+
+                <div className="md:hidden p-3 space-y-3">
+                  {filteredIng.map((ing) => (
+                    <div key={ing.id} className="rounded-xl border border-slate-200 bg-white p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="font-semibold text-slate-800 text-sm">{ing.name}</p>
+                          <p className="text-xs text-slate-400 font-mono">#{String(ing.id).padStart(3, '0')}</p>
+                        </div>
+                        <button onClick={() => setConfirmDelIng(ing.id)} className="text-xs text-red-500 font-medium">Deactivate</button>
+                      </div>
+
+                      <div className="mt-2 flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-xs text-slate-400">Unit</p>
+                          <UnitSelect
+                            value={ing.unit}
+                            onChange={(v) => updateIngredientUnit(ing.id, v)}
+                            className="mt-1 bg-slate-100 text-slate-600 text-xs px-2.5 py-1 rounded-full font-mono font-medium border-0 cursor-pointer hover:bg-slate-200 outline-none transition-colors"
+                          />
+                        </div>
+                        <span className="badge-active">Active</span>
+                      </div>
+                    </div>
+                  ))}
+
+                  {!filteredIng.length && (
+                    <Empty icon={<Salad size={48} className="mx-auto text-slate-300" />} message="No ingredients found" sub='Click "+ Add Ingredient" to get started.' />
+                  )}
                 </div>
               </div>
             </div>
@@ -562,14 +592,14 @@ export default function SuperAdminDashboard() {
               {/* Config table */}
               {loading ? <TableSkeleton rows={5} cols={5} /> : (
                 <div className="card p-0 overflow-hidden">
-                  <div className="table-wrap">
+                  <div className="hidden md:block table-wrap">
                     <table className="table">
                       <thead><tr>
                         <th>Ingredient</th>
                         <th>Unit</th>
                         <th>Current Stock</th>
-                        <th className="text-amber-500 min-w-[140px]"><div className="flex items-center gap-1.5">Min Quantity <AlertTriangle size={14} /></div></th>
-                        <th className="text-emerald-500 min-w-[140px]"><div className="flex items-center gap-1.5">Max Quantity <CheckCircle2 size={14} /></div></th>
+                        <th className="text-amber-500 min-w-35"><div className="flex items-center gap-1.5">Min Quantity <AlertTriangle size={14} /></div></th>
+                        <th className="text-emerald-500 min-w-35"><div className="flex items-center gap-1.5">Max Quantity <CheckCircle2 size={14} /></div></th>
                         <th>Level</th>
                         <th></th>
                       </tr></thead>
@@ -614,7 +644,7 @@ export default function SuperAdminDashboard() {
                                   }))}
                                 />
                               </td>
-                              <td className="min-w-[120px]">
+                              <td className="min-w-30">
                                 <StockBar
                                   current={item.current_quantity}
                                   max={parseFloat(edits.max) || item.max_quantity || 1}
@@ -639,6 +669,75 @@ export default function SuperAdminDashboard() {
                       </tbody>
                     </table>
                   </div>
+
+                  <div className="md:hidden p-3 space-y-3">
+                    {stockConfig.map((item) => {
+                      const edits = configEdits[item.ingredient_id] || { max: item.max_quantity, min: item.min_quantity };
+                      const isSaving = savingConfig[item.ingredient_id];
+                      return (
+                        <div key={item.ingredient_id} className="rounded-xl border border-slate-200 bg-white p-3">
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <p className="font-semibold text-slate-800 text-sm">{item.ingredient_name}</p>
+                            <UnitSelect
+                              value={item.unit}
+                              onChange={(v) => updateIngredientUnit(item.ingredient_id, v)}
+                              className="bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded-full font-mono border-0 cursor-pointer hover:bg-slate-200 outline-none transition-colors"
+                            />
+                          </div>
+
+                          <p className="text-xs text-slate-400">Current Stock</p>
+                          <p className="text-sm font-semibold text-slate-800 mb-2">{item.current_quantity}</p>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <p className="text-xs text-slate-400 mb-1">Min Quantity</p>
+                              <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                className="input w-full py-1.5 text-sm border-amber-200 focus:ring-amber-400"
+                                value={edits.min}
+                                onChange={e => setConfigEdits(c => ({
+                                  ...c,
+                                  [item.ingredient_id]: { ...edits, min: e.target.value }
+                                }))}
+                              />
+                            </div>
+                            <div>
+                              <p className="text-xs text-slate-400 mb-1">Max Quantity</p>
+                              <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                className="input w-full py-1.5 text-sm border-emerald-200 focus:ring-emerald-400"
+                                value={edits.max}
+                                onChange={e => setConfigEdits(c => ({
+                                  ...c,
+                                  [item.ingredient_id]: { ...edits, max: e.target.value }
+                                }))}
+                              />
+                            </div>
+                          </div>
+
+                          <div className="mt-3">
+                            <StockBar current={item.current_quantity} max={parseFloat(edits.max) || item.max_quantity || 1} />
+                          </div>
+
+                          <button
+                            onClick={() => saveStockLimit(item.ingredient_id)}
+                            disabled={isSaving}
+                            className="mt-3 text-xs bg-slate-800 text-white px-3 py-1.5 rounded-lg hover:bg-slate-700 transition-colors disabled:opacity-50"
+                          >
+                            {isSaving ? '…' : 'Save'}
+                          </button>
+                        </div>
+                      );
+                    })}
+
+                    {!stockConfig.length && (
+                      <Empty icon="⚙️" message="No ingredients configured" sub="Add ingredients first, then set limits here." />
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -656,7 +755,7 @@ export default function SuperAdminDashboard() {
                 <SearchInput value={search} onChange={setSearch} placeholder="Search by name or email…" />
               </div>
               <div className="card p-0 overflow-hidden">
-                <div className="table-wrap">
+                <div className="hidden md:block table-wrap">
                   <table className="table">
                     <thead><tr>
                       {['Name', 'Email', 'Role', 'Location', 'Status', '', ''].map((h, i) => <th key={i}>{h}</th>)}
@@ -695,6 +794,42 @@ export default function SuperAdminDashboard() {
                     </tbody>
                   </table>
                 </div>
+
+                <div className="md:hidden p-3 space-y-3">
+                  {filteredUsers.map(u => (
+                    <div key={u.id} className="rounded-xl border border-slate-200 bg-white p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="font-semibold text-slate-800 text-sm">{u.name}</p>
+                          <p className="text-xs text-slate-500">{u.email}</p>
+                        </div>
+                        <span className={u.is_active ? 'badge-active' : 'badge-inactive'}>
+                          {u.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <RoleBadge role={u.role} />
+                        <span className="text-xs text-slate-500">{u.location_name || 'No location'}</span>
+                      </div>
+
+                      <div className="mt-3 flex gap-3">
+                        <button onClick={() => { setResetPwModal({ id: u.id, name: u.name }); setResetPwValue(''); }} className="text-xs text-amber-600 font-medium flex items-center gap-1">
+                          <Key size={12} /> Reset Pwd
+                        </button>
+                        {u.is_active && (
+                          <button onClick={() => setConfirmDel(u.id)} className="text-xs text-red-500 font-medium">
+                            Deactivate
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+
+                  {!filteredUsers.length && (
+                    <Empty icon={<User size={48} className="mx-auto text-slate-300" />} message="No users found" />
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -732,7 +867,7 @@ export default function SuperAdminDashboard() {
             <div className="space-y-5 fade-up">
               <SectionHeader title="Audit Log" sub="Tamper-evident record of all system actions" />
               <div className="card p-0 overflow-hidden">
-                <div className="table-wrap">
+                <div className="hidden md:block table-wrap">
                   <table className="table">
                     <thead><tr>
                       {['Time', 'User', 'Role', 'Action', 'Details'].map(h => <th key={h}>{h}</th>)}
@@ -760,6 +895,28 @@ export default function SuperAdminDashboard() {
                       )}
                     </tbody>
                   </table>
+                </div>
+
+                <div className="md:hidden p-3 space-y-3">
+                  {auditLog.map(a => (
+                    <div key={a.id} className="rounded-xl border border-slate-200 bg-white p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="font-semibold text-slate-800 text-sm">{a.user_name}</p>
+                        <span className="font-mono text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-lg">{a.action}</span>
+                      </div>
+
+                      <div className="mt-2">
+                        <RoleBadge role={a.user_role} />
+                      </div>
+
+                      <p className="mt-2 text-xs text-slate-400">{new Date(a.created_at).toLocaleString()}</p>
+                      <p className="mt-1 text-xs text-slate-500 break-words">{a.new_value || a.target_table || '—'}</p>
+                    </div>
+                  ))}
+
+                  {!auditLog.length && (
+                    <Empty icon={<ScrollText size={48} className="mx-auto text-slate-300" />} message="No audit records yet" />
+                  )}
                 </div>
               </div>
             </div>
